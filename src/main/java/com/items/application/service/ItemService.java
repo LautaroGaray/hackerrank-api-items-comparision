@@ -1,0 +1,88 @@
+package com.items.application.service;
+
+import java.math.BigDecimal;
+import java.util.Map;
+
+
+import com.items.domain.model.ComparisionResult;
+import com.items.domain.model.Item;
+import com.items.domain.port.inbound.ComparisionUseCase;
+import com.items.domain.port.inbound.CreateItemUseCase;
+import com.items.domain.port.inbound.DeleteItemUseCase;
+import com.items.domain.port.inbound.GetItemUseCase;
+import com.items.domain.port.inbound.UpdateItemUseCase;
+import com.items.domain.port.outbound.ItemRepositoryPort;
+
+public class ItemService implements
+                                ComparisionUseCase, 
+                                GetItemUseCase,
+                                CreateItemUseCase,
+                                UpdateItemUseCase,
+                                DeleteItemUseCase {
+    private final ItemRepositoryPort itemRepository;
+
+    public ItemService(ItemRepositoryPort itemRepository) {
+        this.itemRepository = itemRepository;
+    }
+
+    @Override
+    public ComparisionResult compare(String id1, String id2) {
+     
+        
+        Item item1 = itemRepository.findById(id1)
+            .orElseThrow(() -> new IllegalArgumentException("Item with id " + id1 + " not found"));
+        Item item2 = itemRepository.findById(id2)
+            .orElseThrow(() -> new IllegalArgumentException("Item with id " + id2 + " not found"));
+
+        // Mejor precio (menor)
+        String bestPriceItemId = item1.price().compareTo(item2.price()) < 0 ? id1 : id2;
+        double bestPrice = item1.price().compareTo(item2.price()) < 0 ? 
+            item1.price().doubleValue() : item2.price().doubleValue();
+
+        // Mejor rating (mayor)
+        String bestRatedItem = item1.rating() > item2.rating() ? id1 : id2;
+        Double bestRating = Math.max(item1.rating(), item2.rating());
+
+        // Diferencias 
+        BigDecimal priceDifference = item1.price().subtract(item2.price()).abs();
+        Double ratingDifference = Math.abs(item1.rating() - item2.rating());
+
+        Map<String, String> differences = Map.of(
+            "priceDifference", priceDifference.toString(),
+            "ratingDifference", ratingDifference.toString()
+        );
+
+        return new ComparisionResult(bestPriceItemId, bestPrice, bestRatedItem, bestRating, differences);      
+        
+    }
+
+    @Override
+    public Item getItemById(String id) {
+        return itemRepository.findById(id)
+            .orElseThrow(() -> new IllegalArgumentException("Item with id " + id + " not found"));
+    }
+
+    @Override
+    public void deleteItem(String id) {
+        getItemById(id); 
+        itemRepository.deleteById(id);
+    }
+
+    @Override
+    public Item updateItem(Item item) {
+        if(item.id() == null) {
+            throw new IllegalArgumentException("Item id cannot be null");
+        }
+        getItemById(item.id().toString()); 
+        return itemRepository.save(item);
+    }
+
+    @Override
+    public Item createItem(Item item) {
+        if(item.id() == null) {
+            throw new IllegalArgumentException("Item id cannot be null");
+        }
+        return itemRepository.save(item);
+    }
+ 
+}
