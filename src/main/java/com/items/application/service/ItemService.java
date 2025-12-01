@@ -3,7 +3,8 @@ package com.items.application.service;
 import java.math.BigDecimal;
 import java.util.Map;
 
-
+import com.items.domain.exception.InvalidItemException;
+import com.items.domain.exception.ItemNotFoundException;
 import com.items.domain.model.ComparisionResult;
 import com.items.domain.model.Item;
 import com.items.domain.port.inbound.ComparisionUseCase;
@@ -26,13 +27,13 @@ public class ItemService implements
     }
 
     @Override
-    public ComparisionResult compare(String id1, String id2) {
+    public ComparisionResult compare(String id1, String id2) throws ItemNotFoundException {
      
         
         Item item1 = itemRepository.findById(id1)
-            .orElseThrow(() -> new IllegalArgumentException("Item with id " + id1 + " not found"));
+            .orElseThrow(() -> new ItemNotFoundException("Item with id " + id1 + " not found"));
         Item item2 = itemRepository.findById(id2)
-            .orElseThrow(() -> new IllegalArgumentException("Item with id " + id2 + " not found"));
+            .orElseThrow(() -> new ItemNotFoundException("Item with id " + id2 + " not found"));
 
         // Mejor precio (menor)
         String bestPriceItemId = item1.price().compareTo(item2.price()) < 0 ? id1 : id2;
@@ -57,9 +58,9 @@ public class ItemService implements
     }
 
     @Override
-    public Item getItemById(String id) {
+    public Item getItemById(String id) throws ItemNotFoundException{
         return itemRepository.findById(id)
-            .orElseThrow(() -> new IllegalArgumentException("Item with id " + id + " not found"));
+            .orElseThrow(() -> new ItemNotFoundException("Item with id " + id + " not found"));
     }
 
     @Override
@@ -69,18 +70,18 @@ public class ItemService implements
     }
 
     @Override
-    public Item updateItem(Item item) {
+    public Item updateItem(Item item) throws InvalidItemException {
         if(item.id() == null) {
-            throw new IllegalArgumentException("Item id cannot be null");
+            throw new InvalidItemException("Item id cannot be null");
         }
         getItemById(item.id().toString()); 
         return itemRepository.save(item);
     }
 
     @Override
-    public Item createItem(Item item) {
+    public Item createItem(Item item) throws InvalidItemException {
         if(item.id() == null) {
-            throw new IllegalArgumentException("Item id cannot be null");
+            throw new InvalidItemException("Item id cannot be null");
         }
         return itemRepository.save(item);
     }

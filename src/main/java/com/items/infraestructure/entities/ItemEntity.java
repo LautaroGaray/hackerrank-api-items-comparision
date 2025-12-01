@@ -3,10 +3,10 @@ package com.items.infraestructure.entities;
 import com.items.domain.model.Item;
 
 import java.math.BigDecimal;
-import java.util.UUID;
+
 
 public class ItemEntity {
-    private UUID id;
+    private String id;
     private String name;
     private String imageUrl;
     private String description;
@@ -16,7 +16,7 @@ public class ItemEntity {
 
     public ItemEntity() {}
 
-    public ItemEntity(UUID id,
+    public ItemEntity(String id,
                       String name,
                       String imageUrl,
                       String description,
@@ -55,11 +55,11 @@ public class ItemEntity {
         );
     }
 
-    public UUID getId() {
+    public String getId() {
         return id;
     }
 
-    public void setId(UUID id) {
+    public void setId(String id) {
         this.id = id;
     }
 
