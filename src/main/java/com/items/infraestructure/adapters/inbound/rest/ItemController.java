@@ -18,8 +18,16 @@ import com.items.domain.port.inbound.DeleteItemUseCase;
 import com.items.domain.port.inbound.GetItemUseCase;
 import com.items.domain.port.inbound.UpdateItemUseCase;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 @RestController
 @RequestMapping("/items")
+@Tag(name = "Items", description = "Item management operations")
+@SecurityRequirement(name = "JWT")
 public class ItemController {
 
     private final CreateItemUseCase createItemUseCase;
@@ -41,26 +49,56 @@ public class ItemController {
     }
 
     @PostMapping
+    @Operation(summary = "Create new item", description = "Creates a new item in the system")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Item created successfully"),
+        @ApiResponse(responseCode = "400", description = "Invalid item data"),
+        @ApiResponse(responseCode = "401", description = "Unauthorized")
+    })
     public Item createItem(@RequestBody Item item){
         return createItemUseCase.createItem(item);
     }
 
     @PutMapping
+    @Operation(summary = "Update item", description = "Updates an existing item")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Item updated successfully"),
+        @ApiResponse(responseCode = "404", description = "Item not found"),
+        @ApiResponse(responseCode = "401", description = "Unauthorized")
+    })
     public Item updateItem(@RequestBody Item item){
         return updateItemUseCase.updateItem(item);
     }
 
     @DeleteMapping("/{id}")
+    @Operation(summary = "Delete item", description = "Removes an item by its ID")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Item deleted successfully"),
+        @ApiResponse(responseCode = "404", description = "Item not found"),
+        @ApiResponse(responseCode = "401", description = "Unauthorized")
+    })
     public void deleteItem(@PathVariable String id){
         deleteItemUseCase.deleteItem(id);
     }
 
     @GetMapping("/{id}")
+    @Operation(summary = "Get item by ID", description = "Retrieves a specific item by its identifier")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Item found"),
+        @ApiResponse(responseCode = "404", description = "Item not found"),
+        @ApiResponse(responseCode = "401", description = "Unauthorized")
+    })
     public Item getById(@PathVariable String id){
         return getItemUseCase.getItemById(id);
     }
 
     @GetMapping("/compare")
+    @Operation(summary = "Compare two items", description = "Compares two items and returns the comparison result")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Comparison completed"),
+        @ApiResponse(responseCode = "404", description = "One or both items not found"),
+        @ApiResponse(responseCode = "401", description = "Unauthorized")
+    })
     public ComparisionResult compareItems(@RequestParam String id1, @RequestParam String id2) {
         return comparisionUseCase.compare(id1, id2);
     }

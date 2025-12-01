@@ -9,6 +9,7 @@ Small hexagonal-architecture microservice for storing and comparing items.
 - Architecture: Hexagonal (domain, application, adapters inbound/outbound)
 - Storage: JSON files (JsonItemRepository)
 - Default port: 8083
+- API Documentation: Swagger/OpenAPI 3.0
 
 ## Build and run
 
