@@ -1,0 +1,44 @@
+@startuml Compare Items Flow
+
+actor User
+participant "ItemController" as Controller
+participant "ItemService" as Service
+participant "ItemRepositoryPort" as Repo
+
+User -> Controller: GET /items/compare?id1=A&id2=B
+activate Controller
+
+Controller -> Service: compare(id1, id2)
+activate Service
+
+Service -> Repo: findById(id1)
+activate Repo
+Repo --> Service: Optional<Item1>
+deactivate Repo
+
+alt Item1 not found
+  Service --> Controller: throw ItemNotFoundException
+  Controller --> User: 404 Not Found
+else Item1 found
+  Service -> Repo: findById(id2)
+  activate Repo
+  Repo --> Service: Optional<Item2>
+  deactivate Repo
+  
+  alt Item2 not found
+    Service --> Controller: throw ItemNotFoundException
+    Controller --> User: 404 Not Found
+  else Both items found
+    Service -> Service: comparePrices(item1, item2)
+    Service -> Service: compareRatings(item1, item2)
+    Service -> Service: new ComparisionResult(cheaper, better)
+    
+    Service --> Controller: ComparisionResult
+    deactivate Service
+    
+    Controller --> User: 200 OK\n{cheaperItem, betterRatedItem}
+    deactivate Controller
+  end
+end
+
+@enduml

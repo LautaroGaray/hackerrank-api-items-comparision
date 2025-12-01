@@ -1,0 +1,66 @@
+@startuml Component Diagram
+
+package "Presentation Layer" {
+  [ItemController]
+  [AuthController]
+  [GlobalExceptionHandler]
+}
+
+package "Application Layer" {
+  [ItemService]
+  [AuthService]
+}
+
+package "Domain Layer" {
+  [Item]
+  [User]
+  [ComparisionResult]
+  [ItemValidator]
+  [Exceptions]
+}
+
+package "Infrastructure Layer" {
+  package "Security" {
+    [SecurityConfig]
+    [JwtAuthenticationFilter]
+    [JwtUtil]
+  }
+  
+  package "Persistence" {
+    [JsonItemRepository]
+    [InMemoryUserRepository]
+    [ItemEntity]
+    [ItemEntityMapper]
+  }
+  
+  package "Configuration" {
+    [BeanConfig]
+    [OpenApiConfig]
+    [JwtProperties]
+  }
+}
+
+database "items.json" {
+}
+
+[ItemController] --> [ItemService]
+[AuthController] --> [AuthService]
+[ItemService] --> [ItemValidator]
+[ItemService] --> [JsonItemRepository]
+[AuthService] --> [InMemoryUserRepository]
+[AuthService] --> [JwtUtil]
+
+[JsonItemRepository] --> [ItemEntityMapper]
+[JsonItemRepository] --> [ItemEntity]
+[JsonItemRepository] --> "items.json"
+
+[ItemEntityMapper] --> [Item]
+[ItemService] --> [Item]
+[ItemService] --> [ComparisionResult]
+
+[SecurityConfig] --> [JwtAuthenticationFilter]
+[JwtAuthenticationFilter] --> [JwtUtil]
+
+[GlobalExceptionHandler] ..> [Exceptions]
+
+@enduml

@@ -1,0 +1,66 @@
+@startuml Domain Model
+
+skinparam classAttributeIconSize 0
+
+class Item {
+  - String id
+  - String name
+  - String imageUrl
+  - String description
+  - BigDecimal price
+  - Double rating
+  --
+  + Item(...)
+  + id() : String
+  + name() : String
+  + price() : BigDecimal
+  + rating() : Double
+}
+
+class User {
+  - String username
+  - String password
+  --
+  + User(String, String)
+  + username() : String
+  + password() : String
+}
+
+class ComparisionResult {
+  - Item cheaperItem
+  - Item betterRatedItem
+  --
+  + ComparisionResult(Item, Item)
+  + cheaperItem() : Item
+  + betterRatedItem() : Item
+}
+
+class ItemValidator {
+  + {static} validate(Item) : void
+  - {static} validatePrice(BigDecimal)
+  - {static} validateRating(Double)
+}
+
+class InvalidItemException {
+  + InvalidItemException(String)
+}
+
+class ItemNotFoundException {
+  + ItemNotFoundException(String)
+}
+
+ItemValidator ..> Item : validates
+ItemValidator ..> InvalidItemException : throws
+ComparisionResult "1" *-- "2" Item : contains
+
+note right of Item
+  Immutable record
+  Business entity
+end note
+
+note right of ItemValidator
+  Domain service
+  Validation rules
+end note
+
+@enduml

@@ -1,0 +1,55 @@
+@startuml Create Item Flow
+
+actor User
+participant "ItemController" as Controller
+participant "ItemService" as Service
+participant "ItemValidator" as Validator
+participant "ItemRepositoryPort" as Port
+participant "JsonItemRepository" as Repo
+participant "ItemEntityMapper" as Mapper
+database "items.json" as DB
+
+User -> Controller: POST /items\n{item data}
+activate Controller
+
+Controller -> Service: createItem(item)
+activate Service
+
+Service -> Validator: validate(item)
+activate Validator
+alt Invalid Item
+  Validator --> Service: throw InvalidItemException
+  Service --> Controller: InvalidItemException
+  Controller --> User: 400 Bad Request
+else Valid Item
+  Validator --> Service: void
+  deactivate Validator
+  
+  Service -> Port: save(item)
+  activate Port
+  
+  Port -> Repo: save(item)
+  activate Repo
+  
+  Repo -> Mapper: toEntity(item)
+  activate Mapper
+  Mapper --> Repo: ItemEntity
+  deactivate Mapper
+  
+  Repo -> DB: write JSON
+  DB --> Repo: success
+  
+  Repo --> Port: savedItem
+  deactivate Repo
+  
+  Port --> Service: savedItem
+  deactivate Port
+  
+  Service --> Controller: savedItem
+  deactivate Service
+  
+  Controller --> User: 200 OK\n{savedItem}
+  deactivate Controller
+end
+
+@enduml

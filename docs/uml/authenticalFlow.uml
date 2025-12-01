@@ -1,0 +1,50 @@
+@startuml Authentication Flow
+
+actor User
+participant "AuthController" as Controller
+participant "AuthService" as Service
+participant "UserRepositoryPort" as UserRepo
+participant "InMemoryUserRepository" as UserRepoImpl
+participant "TokenProviderPort" as TokenPort
+participant "JwtUtil" as JWT
+
+User -> Controller: POST /auth/login\n{username, password}
+activate Controller
+
+Controller -> Service: authenticate(username, password)
+activate Service
+
+Service -> UserRepo: findByUsername(username)
+activate UserRepo
+
+UserRepo -> UserRepoImpl: findByUsername(username)
+activate UserRepoImpl
+UserRepoImpl --> UserRepo: Optional<User>
+deactivate UserRepoImpl
+
+UserRepo --> Service: Optional<User>
+deactivate UserRepo
+
+alt User not found or invalid password
+  Service --> Controller: throw RuntimeException
+  Controller --> User: 401 Unauthorized
+else Valid credentials
+  Service -> TokenPort: generateToken(username)
+  activate TokenPort
+  
+  TokenPort -> JWT: generateToken(username)
+  activate JWT
+  JWT --> TokenPort: JWT token
+  deactivate JWT
+  
+  TokenPort --> Service: token
+  deactivate TokenPort
+  
+  Service --> Controller: token
+  deactivate Service
+  
+  Controller --> User: 200 OK\n{token: "..."}
+  deactivate Controller
+end
+
+@enduml

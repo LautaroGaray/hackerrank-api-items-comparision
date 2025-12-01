@@ -1,0 +1,107 @@
+@startuml Hexagonal Architecture
+
+!define RECTANGLE class
+
+skinparam backgroundColor #FEFEFE
+skinparam component {
+  BackgroundColor<<domain>> LightYellow
+  BackgroundColor<<application>> LightBlue
+  BackgroundColor<<inbound>> LightGreen
+  BackgroundColor<<outbound>> LightCoral
+  BorderColor Black
+}
+
+package "Domain Layer" <<domain>> {
+  [Item Model]
+  [User Model]
+  [ComparisionResult]
+  [ItemValidator]
+  [Exceptions]
+}
+
+package "Application Layer" <<application>> {
+  [ItemService]
+  [AuthService]
+}
+
+package "Ports (Inbound)" {
+  interface "CreateItemUseCase" as CreateUC
+  interface "GetItemUseCase" as GetUC
+  interface "UpdateItemUseCase" as UpdateUC
+  interface "DeleteItemUseCase" as DeleteUC
+  interface "ComparisionUseCase" as CompareUC
+}
+
+package "Ports (Outbound)" {
+  interface "ItemRepositoryPort" as ItemRepo
+  interface "UserRepositoryPort" as UserRepo
+  interface "TokenProviderPort" as TokenPort
+}
+
+package "Adapters Inbound" <<inbound>> {
+  [ItemController]
+  [AuthController]
+  [REST API]
+}
+
+package "Adapters Outbound" <<outbound>> {
+  [JsonItemRepository]
+  [InMemoryUserRepository]
+  [JwtUtil]
+  [ItemEntity]
+  [ItemEntityMapper]
+}
+
+package "Infrastructure" {
+  [SecurityConfig]
+  [JwtAuthenticationFilter]
+  [OpenApiConfig]
+  [BeanConfig]
+}
+
+' Connections
+[REST API] --> [ItemController]
+[REST API] --> [AuthController]
+
+[ItemController] ..> CreateUC
+[ItemController] ..> GetUC
+[ItemController] ..> UpdateUC
+[ItemController] ..> DeleteUC
+[ItemController] ..> CompareUC
+
+[AuthController] --> [AuthService]
+
+[ItemService] ..|> CreateUC
+[ItemService] ..|> GetUC
+[ItemService] ..|> UpdateUC
+[ItemService] ..|> DeleteUC
+[ItemService] ..|> CompareUC
+
+[ItemService] --> ItemRepo
+[ItemService] --> [ItemValidator]
+[AuthService] --> UserRepo
+[AuthService] --> TokenPort
+
+ItemRepo <|.. [JsonItemRepository]
+UserRepo <|.. [InMemoryUserRepository]
+TokenPort <|.. [JwtUtil]
+
+[JsonItemRepository] --> [ItemEntity]
+[JsonItemRepository] --> [ItemEntityMapper]
+
+[ItemEntityMapper] --> [Item Model]
+
+[SecurityConfig] --> [JwtAuthenticationFilter]
+[JwtAuthenticationFilter] --> TokenPort
+
+note right of [Domain Layer]
+  Core business logic
+  No dependencies on frameworks
+end note
+
+note right of [Adapters Outbound]
+  External systems
+  Persistence, Security, etc.
+end note
+
+@enduml
