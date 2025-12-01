@@ -8,8 +8,7 @@ Content-Type: application/json
   "imageUrl": "http://example.com/a.jpg",
   "description": "Description A",
   "price": 100.00,
-  "rating": 4.2,
-  "specifications": {"color":"black","weight":"1kg"}
+  "rating": 4.2
 }
 
 ### Create Item 2
@@ -22,8 +21,7 @@ Content-Type: application/json
   "imageUrl": "http://example.com/b.jpg",
   "description": "Description B",
   "price": 150.00,
-  "rating": 4.8,
-  "specifications": {"color":"white","weight":"1.2kg"}
+  "rating": 4.8
 }
 
 ### Get Item 1
@@ -45,8 +43,8 @@ Content-Type: application/json
   "imageUrl": "http://example.com/a.jpg",
   "description": "Description A updated",
   "price": 110.00,
-  "rating": 4.3,
-  "specifications": {"color":"black","weight":"1kg","battery":"10h"}
+  "rating": 4.3
+ 
 }
 
 ### Delete Item 2

@@ -1,6 +1,6 @@
 package com.items.infraestructure.adapters.inbound.rest.exception;
 
-
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -9,8 +9,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import com.items.domain.exception.ItemNotFoundException;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+
 
 import com.items.domain.exception.InvalidItemException;
 
