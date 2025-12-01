@@ -23,6 +23,11 @@ Run:
 mvn spring-boot:run
 ```
 
+## Swagger
+
+- Swagger UI: http://localhost:8083/swagger-ui.html
+- OpenAPI JSON: http://localhost:8083/v3/api-docs
+
 ## Endpoints
 
 Base: http://localhost:8083
