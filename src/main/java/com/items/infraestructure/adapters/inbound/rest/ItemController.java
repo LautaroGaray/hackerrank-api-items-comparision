@@ -63,7 +63,8 @@ public class ItemController {
             request.imageUrl(),
             request.description(),
             request.price(),
-            request.rating()
+            request.rating(),
+            request.specification()
         );
         
         

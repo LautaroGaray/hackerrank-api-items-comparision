@@ -11,7 +11,8 @@ public class ItemEntityMapper {
                 item.imageUrl(),
                 item.description(),
                 item.price(),
-                item.rating()
+                item.rating(),
+                item.specification()
         );
     }
 
@@ -22,7 +23,8 @@ public class ItemEntityMapper {
                 itemEntity.getImageUrl(),
                 itemEntity.getDescription(),
                 itemEntity.getPrice(),
-                itemEntity.getRating()
+                itemEntity.getRating(),
+                itemEntity.getSpecification()
         );
     }
 }

@@ -19,6 +19,8 @@ public final class ItemValidator {
         
         validatePrice(item.price());
         validateRating(item.rating());
+
+        SpecificationValidator.validate(item.specification());
     }
     
    public static void validateNotNull(Item item) {

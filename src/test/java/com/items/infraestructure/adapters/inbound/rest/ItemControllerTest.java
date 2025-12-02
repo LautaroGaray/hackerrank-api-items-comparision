@@ -3,6 +3,7 @@ package com.items.infraestructure.adapters.inbound.rest;
 import com.items.domain.exception.ItemNotFoundException;
 import com.items.domain.model.ComparisionResult;
 import com.items.domain.model.Item;
+import com.items.domain.model.Specification;
 import com.items.domain.port.inbound.ComparisionUseCase;
 import com.items.domain.port.inbound.CreateItemUseCase;
 import com.items.domain.port.inbound.DeleteItemUseCase;
@@ -43,49 +44,53 @@ class ItemControllerTest {
     private ItemController itemController;
     private Item testItemWithId;
     private CreateItemRequest createRequest;
+    private Specification testSpecification;
 
     @BeforeEach
-    void setUp() {        itemController = new ItemController(createItemUseCase, getItemUseCase, updateItemUseCase, deleteItemUseCase, comparisionUseCase);
+    void setUp() {
+        itemController = new ItemController(createItemUseCase, getItemUseCase, updateItemUseCase, deleteItemUseCase, comparisionUseCase);
         
-       
+        testSpecification = new Specification("Dell", "XPS 15", "Silver", 2.5, "357x235x18", "Aluminum", 24);
+        
         testItemWithId = new Item(
             "item-123", 
             "Laptop", 
             "http://img.com/laptop.jpg", 
             "Gaming laptop", 
             BigDecimal.valueOf(1500.0), 
-            4.5
+            4.5,
+            testSpecification
         );
-        
         
         createRequest = new CreateItemRequest(
             "Laptop",
             "http://img.com/laptop.jpg",
             "Gaming laptop",
             BigDecimal.valueOf(1500.0),
-            4.5
+            4.5,
+            testSpecification
         );
     }
 
     @Test
     void createItem_shouldReturnItemWithGeneratedId() {
-    
-        ArgumentCaptor<Item> itemCaptor = ArgumentCaptor.forClass(Item.class);        
-       
+        ArgumentCaptor<Item> itemCaptor = ArgumentCaptor.forClass(Item.class);
         when(createItemUseCase.createItem(any(Item.class))).thenReturn(testItemWithId);
 
-        Item result = itemController.createItem(createRequest);  
-        verify(createItemUseCase).createItem(itemCaptor.capture());        
-    
+        Item result = itemController.createItem(createRequest);
+        verify(createItemUseCase).createItem(itemCaptor.capture());
+        
         Item capturedItem = itemCaptor.getValue();
         assertNull(capturedItem.id(), "Item passed to use case should not have id");
         assertEquals("Laptop", capturedItem.name());
-        assertEquals(BigDecimal.valueOf(1500.0), capturedItem.price());        
-      
+        assertEquals(BigDecimal.valueOf(1500.0), capturedItem.price());
+        assertEquals(testSpecification, capturedItem.specification());
+        
         assertNotNull(result);
         assertNotNull(result.id(), "Returned item should have generated id");
         assertEquals("item-123", result.id());
         assertEquals("Laptop", result.name());
+        assertEquals(testSpecification, result.specification());
     }
 
     @Test
@@ -104,6 +109,7 @@ class ItemControllerTest {
         assertEquals("Gaming laptop", capturedItem.description());
         assertEquals(BigDecimal.valueOf(1500.0), capturedItem.price());
         assertEquals(4.5, capturedItem.rating());
+        assertEquals(testSpecification, capturedItem.specification());
     }
 
     @Test
@@ -120,12 +126,58 @@ class ItemControllerTest {
         when(createItemUseCase.createItem(any(Item.class))).thenReturn(testItemWithId);
 
         Item result = itemController.createItem(createRequest);
-      
+        
         assertEquals(createRequest.name(), result.name());
         assertEquals(createRequest.imageUrl(), result.imageUrl());
         assertEquals(createRequest.description(), result.description());
         assertEquals(createRequest.price(), result.price());
         assertEquals(createRequest.rating(), result.rating());
+        assertEquals(createRequest.specification(), result.specification());
+    }
+
+    @Test
+    void createItem_withNullSpecification_shouldCreateItem() {
+        CreateItemRequest requestWithoutSpec = new CreateItemRequest(
+            "Mouse",
+            "http://img.com/mouse.jpg",
+            "Gaming mouse",
+            BigDecimal.valueOf(50.0),
+            4.8,
+            null
+        );
+        
+        Item itemWithoutSpec = new Item(
+            "item-456",
+            "Mouse",
+            "http://img.com/mouse.jpg",
+            "Gaming mouse",
+            BigDecimal.valueOf(50.0),
+            4.8,
+            null
+        );
+        
+        when(createItemUseCase.createItem(any(Item.class))).thenReturn(itemWithoutSpec);
+
+        Item result = itemController.createItem(requestWithoutSpec);
+
+        assertNotNull(result);
+        assertNull(result.specification());
+        verify(createItemUseCase, times(1)).createItem(any(Item.class));
+    }
+
+    @Test
+    void createItem_withSpecification_shouldIncludeSpecification() {
+        ArgumentCaptor<Item> itemCaptor = ArgumentCaptor.forClass(Item.class);
+        when(createItemUseCase.createItem(any(Item.class))).thenReturn(testItemWithId);
+
+        itemController.createItem(createRequest);
+
+        verify(createItemUseCase).createItem(itemCaptor.capture());
+        Item capturedItem = itemCaptor.getValue();
+        
+        assertNotNull(capturedItem.specification());
+        assertEquals("Dell", capturedItem.specification().brand());
+        assertEquals("XPS 15", capturedItem.specification().model());
     }
 
     @Test
@@ -136,6 +188,7 @@ class ItemControllerTest {
 
         assertNotNull(result);
         assertEquals("item-123", result.id());
+        assertEquals(testSpecification, result.specification());
         verify(getItemUseCase).getItemById("item-123");
     }
 
@@ -149,13 +202,15 @@ class ItemControllerTest {
 
     @Test
     void updateItem_shouldReturnUpdatedItem() {
+        Specification updatedSpec = new Specification("Dell", "XPS 17", "Black", 2.8, "400x300x20", "Aluminum", 36);
         Item itemToUpdate = new Item(
             "item-123", 
             "Updated Laptop", 
             "http://img.com/laptop.jpg", 
             "Updated desc", 
             BigDecimal.valueOf(1600.0), 
-            4.6
+            4.6,
+            updatedSpec
         );
         
         when(updateItemUseCase.updateItem(itemToUpdate)).thenReturn(itemToUpdate);
@@ -166,19 +221,20 @@ class ItemControllerTest {
         assertEquals("item-123", result.id());
         assertEquals("Updated Laptop", result.name());
         assertEquals(BigDecimal.valueOf(1600.0), result.price());
+        assertEquals(updatedSpec, result.specification());
         verify(updateItemUseCase).updateItem(itemToUpdate);
     }
 
     @Test
     void updateItem_shouldRequireIdInItem() {
-       
         Item itemWithId = new Item(
             "item-123",
             "Laptop",
             "http://img.com/laptop.jpg",
             "Gaming laptop",
             BigDecimal.valueOf(1500.0),
-            4.5
+            4.5,
+            testSpecification
         );
         
         when(updateItemUseCase.updateItem(itemWithId)).thenReturn(itemWithId);
@@ -200,6 +256,27 @@ class ItemControllerTest {
         itemController.updateItem(testItemWithId);
 
         verify(updateItemUseCase, times(1)).updateItem(testItemWithId);
+    }
+
+    @Test
+    void updateItem_withNullSpecification_shouldUpdate() {
+        Item itemWithoutSpec = new Item(
+            "item-123",
+            "Keyboard",
+            "http://img.com/kb.jpg",
+            "Mechanical keyboard",
+            BigDecimal.valueOf(100.0),
+            4.7,
+            null
+        );
+        
+        when(updateItemUseCase.updateItem(itemWithoutSpec)).thenReturn(itemWithoutSpec);
+
+        Item result = itemController.updateItem(itemWithoutSpec);
+
+        assertNotNull(result);
+        assertNull(result.specification());
+        verify(updateItemUseCase).updateItem(itemWithoutSpec);
     }
 
     @Test

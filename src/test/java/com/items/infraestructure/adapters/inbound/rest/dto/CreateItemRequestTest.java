@@ -2,6 +2,8 @@ package com.items.infraestructure.adapters.inbound.rest.dto;
 
 import org.junit.jupiter.api.Test;
 
+import com.items.domain.model.Specification;
+
 import java.math.BigDecimal;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -10,12 +12,14 @@ class CreateItemRequestTest {
 
     @Test
     void shouldCreateRequestWithAllFields() {
+         Specification specification = new Specification("spec1", "Spec Description", null, null, null, null, null);
         CreateItemRequest request = new CreateItemRequest(
             "Laptop",
             "http://example.com/laptop.jpg",
             "Gaming laptop",
             BigDecimal.valueOf(1500.0),
-            4.5
+            4.5,
+            specification
         );
 
         assertEquals("Laptop", request.name());
@@ -27,12 +31,14 @@ class CreateItemRequestTest {
 
     @Test
     void shouldNotHaveIdField() {
+         Specification specification = new Specification("spec1", "Spec Description", null, null, null, null, null);
         CreateItemRequest request = new CreateItemRequest(
             "Mouse",
             "http://example.com/mouse.jpg",
             "Gaming mouse",
             BigDecimal.valueOf(50.0),
-            4.8
+            4.8,
+            specification
         );
 
         
@@ -43,12 +49,14 @@ class CreateItemRequestTest {
 
     @Test
     void shouldBeImmutable() {
+         Specification specification = new Specification("spec1", "Spec Description", null, null, null, null, null);
         CreateItemRequest request = new CreateItemRequest(
             "Keyboard",
             "http://example.com/keyboard.jpg",
             "Mechanical keyboard",
             BigDecimal.valueOf(100.0),
-            4.7
+            4.7,
+            specification
         );
 
         assertEquals("Keyboard", request.name());        
@@ -60,12 +68,14 @@ class CreateItemRequestTest {
 
     @Test
     void shouldSupportEquality() {
+         Specification specification = new Specification("spec1", "Spec Description", null, null, null, null, null);
         CreateItemRequest request1 = new CreateItemRequest(
             "Mouse",
             "http://example.com/mouse.jpg",
             "Gaming mouse",
             BigDecimal.valueOf(50.0),
-            4.8
+            4.8,
+            specification
         );
 
         CreateItemRequest request2 = new CreateItemRequest(
@@ -73,7 +83,8 @@ class CreateItemRequestTest {
             "http://example.com/mouse.jpg",
             "Gaming mouse",
             BigDecimal.valueOf(50.0),
-            4.8
+            4.8,
+            specification
         );
 
         assertEquals(request1, request2);
@@ -82,12 +93,14 @@ class CreateItemRequestTest {
 
     @Test
     void shouldNotBeEqualWithDifferentValues() {
+         Specification specification = new Specification("spec1", "Spec Description", null, null, null, null, null);
         CreateItemRequest request1 = new CreateItemRequest(
             "Mouse",
             "http://example.com/mouse.jpg",
             "Gaming mouse",
             BigDecimal.valueOf(50.0),
-            4.8
+            4.8,
+            specification
         );
 
         CreateItemRequest request2 = new CreateItemRequest(
@@ -95,7 +108,8 @@ class CreateItemRequestTest {
             "http://example.com/keyboard.jpg",
             "Mechanical keyboard",
             BigDecimal.valueOf(100.0),
-            4.7
+            4.7,
+            specification
         );
 
         assertNotEquals(request1, request2);
@@ -104,12 +118,14 @@ class CreateItemRequestTest {
 
     @Test
     void shouldHaveProperToString() {
+         Specification specification = new Specification("spec1", "Spec Description", null, null, null, null, null);
         CreateItemRequest request = new CreateItemRequest(
             "Monitor",
             "http://example.com/monitor.jpg",
             "4K Monitor",
             BigDecimal.valueOf(300.0),
-            4.6
+            4.6,
+            specification
         );
 
         String toString = request.toString();
@@ -123,12 +139,14 @@ class CreateItemRequestTest {
 
     @Test
     void shouldHandleNullName() {
+         Specification specification = new Specification("spec1", "Spec Description", null, null, null, null, null);
         CreateItemRequest request = new CreateItemRequest(
             null,
             "http://example.com/image.jpg",
             "Description",
             BigDecimal.valueOf(100.0),
-            4.5
+            4.5,
+            specification
         );
 
         assertNull(request.name());
@@ -136,12 +154,14 @@ class CreateItemRequestTest {
 
     @Test
     void shouldHandleNullImageUrl() {
+         Specification specification = new Specification("spec1", "Spec Description", null, null, null, null, null);
         CreateItemRequest request = new CreateItemRequest(
             "Item",
             null,
             "Description",
             BigDecimal.valueOf(100.0),
-            4.5
+            4.5,
+            specification
         );
 
         assertNull(request.imageUrl());
@@ -149,12 +169,14 @@ class CreateItemRequestTest {
 
     @Test
     void shouldHandleNullDescription() {
+         Specification specification = new Specification("spec1", "Spec Description", null, null, null, null, null);
         CreateItemRequest request = new CreateItemRequest(
             "Item",
             "http://example.com/image.jpg",
             null,
             BigDecimal.valueOf(100.0),
-            4.5
+            4.5,
+            specification
         );
 
         assertNull(request.description());
@@ -162,12 +184,14 @@ class CreateItemRequestTest {
 
     @Test
     void shouldHandleNullPrice() {
+         Specification specification = new Specification("spec1", "Spec Description", null, null, null, null, null);
         CreateItemRequest request = new CreateItemRequest(
             "Item",
             "http://example.com/image.jpg",
             "Description",
             null,
-            4.5
+            4.5,
+            specification
         );
 
         assertNull(request.price());
@@ -175,12 +199,14 @@ class CreateItemRequestTest {
 
     @Test
     void shouldHandleNullRating() {
+         Specification specification = new Specification("spec1", "Spec Description", null, null, null, null, null);
         CreateItemRequest request = new CreateItemRequest(
             "Item",
             "http://example.com/image.jpg",
             "Description",
             BigDecimal.valueOf(100.0),
-            null
+            null,
+            specification
         );
 
         assertNull(request.rating());
@@ -188,12 +214,14 @@ class CreateItemRequestTest {
 
     @Test
     void shouldCreateWithDifferentPriceFormats() {
+         Specification specification = new Specification("spec1", "Spec Description", null, null, null, null, null);
         CreateItemRequest request1 = new CreateItemRequest(
             "Item",
             "http://example.com/image.jpg",
             "Description",
             new BigDecimal("99.99"),
-            4.5
+            4.5,
+            specification
         );
 
         CreateItemRequest request2 = new CreateItemRequest(
@@ -201,7 +229,8 @@ class CreateItemRequestTest {
             "http://example.com/image.jpg",
             "Description",
             BigDecimal.valueOf(99.99),
-            4.5
+            4.5,
+            specification
         );
 
         assertEquals(request1.price().doubleValue(), request2.price().doubleValue(), 0.001);
@@ -209,12 +238,14 @@ class CreateItemRequestTest {
 
     @Test
     void shouldHandleZeroPrice() {
+         Specification specification = new Specification("spec1", "Spec Description", null, null, null, null, null);
         CreateItemRequest request = new CreateItemRequest(
             "Free Item",
             "http://example.com/free.jpg",
             "Free description",
             BigDecimal.ZERO,
-            4.0
+            4.0,
+            specification
         );
 
         assertEquals(BigDecimal.ZERO, request.price());
@@ -222,12 +253,14 @@ class CreateItemRequestTest {
 
     @Test
     void shouldHandleMinimumRating() {
+         Specification specification = new Specification("spec1", "Spec Description", null, null, null, null, null);
         CreateItemRequest request = new CreateItemRequest(
             "Bad Item",
             "http://example.com/bad.jpg",
             "Bad description",
             BigDecimal.valueOf(10.0),
-            0.0
+            0.0,
+            specification
         );
 
         assertEquals(0.0, request.rating());
@@ -235,12 +268,14 @@ class CreateItemRequestTest {
 
     @Test
     void shouldHandleMaximumRating() {
+         Specification specification = new Specification("spec1", "Spec Description", null, null, null, null, null);
         CreateItemRequest request = new CreateItemRequest(
             "Perfect Item",
             "http://example.com/perfect.jpg",
             "Perfect description",
             BigDecimal.valueOf(100.0),
-            5.0
+            5.0,
+            specification
         );
 
         assertEquals(5.0, request.rating());

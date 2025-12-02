@@ -3,6 +3,8 @@ package com.items.infraestructure.adapters.inbound.rest.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
 
+import com.items.domain.model.Specification;
+
 @Schema(description = "Request for creating a new item")
 public record CreateItemRequest(
     @Schema(description = "Item name", example = "Laptop")
@@ -18,5 +20,8 @@ public record CreateItemRequest(
     BigDecimal price,
     
     @Schema(description = "Item rating", example = "4.5")
-    Double rating
+    Double rating,
+
+    @Schema(description = "Item specifications")
+    Specification specification
 ) {}

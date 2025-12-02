@@ -1,6 +1,8 @@
 package com.items.infraestructure.adapters.outbound.persistence;
 
 import com.items.domain.model.Item;
+import com.items.domain.model.Specification;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,8 +27,9 @@ class JsonItemRepositoryTest {
 
     @BeforeEach
     void setup() {
+         Specification specification = new Specification("spec1", "Spec Description", null, null, null, null, null);
         repository = new JsonItemRepository(tempFolder.toString());
-        sampleItem = new Item("sample-123", "Sample Product", "http://sample.img", "A sample description", BigDecimal.valueOf(49.99), 3.8);
+        sampleItem = new Item("sample-123", "Sample Product", "http://sample.img", "A sample description", BigDecimal.valueOf(49.99), 3.8, specification);
     }
 
     @AfterEach
@@ -79,8 +82,8 @@ class JsonItemRepositoryTest {
     @Test
     void save_shouldOverwriteExistingFile() {
         repository.save(sampleItem);
-        
-        Item updated = new Item(sampleItem.id(), "Updated Name", "http://new.url", "New desc", BigDecimal.valueOf(99.99), 4.5);
+         Specification specification = new Specification("spec1", "Spec Description", null, null, null, null, null);
+        Item updated = new Item(sampleItem.id(), "Updated Name", "http://new.url", "New desc", BigDecimal.valueOf(99.99), 4.5, specification);
         repository.save(updated);
 
         Optional<Item> result = repository.findById(sampleItem.id());
@@ -177,9 +180,10 @@ class JsonItemRepositoryTest {
 
     @Test
     void repository_shouldHandleMultipleItems() {
-        Item item1 = new Item("id-1", "Item 1", "url1", "desc1", BigDecimal.TEN, 4.0);
-        Item item2 = new Item("id-2", "Item 2", "url2", "desc2", BigDecimal.valueOf(20), 4.5);
-        Item item3 = new Item("id-3", "Item 3", "url3", "desc3", BigDecimal.valueOf(30), 5.0);
+         Specification specification = new Specification("spec1", "Spec Description", null, null, null, null, null);
+        Item item1 = new Item("id-1", "Item 1", "url1", "desc1", BigDecimal.TEN, 4.0, specification);
+        Item item2 = new Item("id-2", "Item 2", "url2", "desc2", BigDecimal.valueOf(20), 4.5, specification);
+        Item item3 = new Item("id-3", "Item 3", "url3", "desc3", BigDecimal.valueOf(30), 5.0, specification);
 
         repository.save(item1);
         repository.save(item2);
@@ -192,7 +196,8 @@ class JsonItemRepositoryTest {
 
     @Test
     void save_withNullOptionalFields_shouldWork() {
-        Item itemWithNulls = new Item("id-null", "Name", null, null, BigDecimal.ONE, 3.0);
+         Specification specification = new Specification("spec1", "Spec Description", null, null, null, null, null);
+        Item itemWithNulls = new Item("id-null", "Name", null, null, BigDecimal.ONE, 3.0, specification);
         
         repository.save(itemWithNulls);
         Optional<Item> found = repository.findById("id-null");
@@ -204,10 +209,11 @@ class JsonItemRepositoryTest {
 
     @Test
     void constructor_shouldCreateStoragePath() {
+         Specification specification = new Specification("spec1", "Spec Description", null, null, null, null, null);
         String customPath = tempFolder.toString() + File.separator + "custom";
         JsonItemRepository customRepo = new JsonItemRepository(customPath);
         
-        Item item = new Item("test-id", "Test", "url", "desc", BigDecimal.TEN, 4.0);
+        Item item = new Item("test-id", "Test", "url", "desc", BigDecimal.TEN, 4.0, specification);
         customRepo.save(item);
         
         File customDir = new File(customPath);

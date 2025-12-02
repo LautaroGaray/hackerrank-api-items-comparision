@@ -1,6 +1,7 @@
 package com.items.infraestructure.entities;
 
 import com.items.domain.model.Item;
+import com.items.domain.model.Specification;
 
 import java.math.BigDecimal;
 
@@ -12,6 +13,7 @@ public class ItemEntity {
     private String description;
     private BigDecimal price;
     private Double rating;
+    private Specification specification;
 
 
     public ItemEntity() {}
@@ -21,14 +23,16 @@ public class ItemEntity {
                       String imageUrl,
                       String description,
                       BigDecimal price,
-                      Double rating
+                      Double rating,
+                      Specification specification
                       ) {
         this.id = id;
         this.name = name;
         this.imageUrl = imageUrl;
         this.description = description;
         this.price = price;
-        this.rating = rating;     
+        this.rating = rating;  
+        this.specification = specification;   
     }
 
     public static ItemEntity fromDomain(Item item) {
@@ -39,7 +43,8 @@ public class ItemEntity {
                 item.imageUrl(),
                 item.description(),
                 item.price(),
-                item.rating()
+                item.rating(),
+                item.specification()
                
         );
     }
@@ -51,7 +56,9 @@ public class ItemEntity {
                 this.imageUrl,
                 this.description,
                 this.price,
-                this.rating               
+                this.rating,
+                this.specification
+                           
         );
     }
 
@@ -101,6 +108,14 @@ public class ItemEntity {
 
     public void setRating(Double rating) {
         this.rating = rating;
+    }
+
+    public Specification getSpecification(){
+        return this.specification;
+    }
+
+    public void setSpecification(Specification specification){
+        this.specification = specification;
     }
    
 }
