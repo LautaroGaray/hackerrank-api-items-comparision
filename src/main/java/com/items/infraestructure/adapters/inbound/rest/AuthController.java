@@ -44,7 +44,7 @@ public class AuthController {
     public static record AuthRequest(
         @Schema(description = "Username", example = "admin")
         String username, 
-        @Schema(description = "Password", example = "password123")
+        @Schema(description = "Password", example = "adminpass")
         String password
     ) {}
 }
