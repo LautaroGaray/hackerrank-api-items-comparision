@@ -1,44 +1,179 @@
-@startuml Compare Items Flow
+@startuml Item Comparison Flow
 
-actor User
-participant "ItemController" as Controller
-participant "ItemService" as Service
-participant "ItemRepositoryPort" as Repo
+actor Client
+participant ItemController
+participant ItemService
+participant ItemValidator
+participant ItemRepository
+database Database
 
-User -> Controller: GET /items/compare?id1=A&id2=B
-activate Controller
+title Item Comparison with Specifications
 
-Controller -> Service: compare(id1, id2)
-activate Service
+Client -> ItemController: GET /items/compare?id1=xxx&id2=yyy
+activate ItemController
 
-Service -> Repo: findById(id1)
-activate Repo
-Repo --> Service: Optional<Item1>
-deactivate Repo
+ItemController -> ItemService: compare(id1, id2)
+activate ItemService
+
+ItemService -> ItemValidator: validateIdNotNull(id1)
+ItemService -> ItemValidator: validateIdNotNull(id2)
+
+== Retrieve First Item ==
+
+ItemService -> ItemRepository: findById(id1)
+activate ItemRepository
+
+ItemRepository -> Database: SELECT * FROM items\nWHERE id = 'xxx'
+Database --> ItemRepository: Item1 data\n(with specification)
+
+note right of ItemRepository
+  Item includes:
+  - Basic fields (name, price, rating)
+  - Specification object if present:
+    * brand, model, color
+    * weight, dimensions
+    * material, warrantyMonths
+end note
+
+ItemRepository --> ItemService: Optional<Item1>
+deactivate ItemRepository
 
 alt Item1 not found
-  Service --> Controller: throw ItemNotFoundException
-  Controller --> User: 404 Not Found
-else Item1 found
-  Service -> Repo: findById(id2)
-  activate Repo
-  Repo --> Service: Optional<Item2>
-  deactivate Repo
-  
-  alt Item2 not found
-    Service --> Controller: throw ItemNotFoundException
-    Controller --> User: 404 Not Found
-  else Both items found
-    Service -> Service: comparePrices(item1, item2)
-    Service -> Service: compareRatings(item1, item2)
-    Service -> Service: new ComparisionResult(cheaper, better)
-    
-    Service --> Controller: ComparisionResult
-    deactivate Service
-    
-    Controller --> User: 200 OK\n{cheaperItem, betterRatedItem}
-    deactivate Controller
-  end
+    ItemService --> ItemController: throw ItemNotFoundException
+    ItemController --> Client: HTTP 404
 end
+
+== Retrieve Second Item ==
+
+ItemService -> ItemRepository: findById(id2)
+activate ItemRepository
+
+ItemRepository -> Database: SELECT * FROM items\nWHERE id = 'yyy'
+Database --> ItemRepository: Item2 data\n(with specification)
+
+ItemRepository --> ItemService: Optional<Item2>
+deactivate ItemRepository
+
+alt Item2 not found
+    ItemService --> ItemController: throw ItemNotFoundException
+    ItemController --> Client: HTTP 404
+end
+
+== Price Comparison ==
+
+ItemService -> ItemService: comparePrices(item1, item2)
+note right of ItemService
+  double price1 = item1.price().doubleValue()
+  double price2 = item2.price().doubleValue()
+  
+  bestPriceItemId = (price1 <= price2) ? id1 : id2
+  bestPrice = Math.min(price1, price2)
+end note
+
+== Rating Comparison ==
+
+ItemService -> ItemService: compareRatings(item1, item2)
+note right of ItemService
+  double rating1 = item1.rating()
+  double rating2 = item2.rating()
+  
+  bestRankedItemId = (rating1 >= rating2) ? id1 : id2
+  bestRating = Math.max(rating1, rating2)
+end note
+
+== Calculate Differences ==
+
+ItemService -> ItemService: calculateDifferences(item1, item2)
+note right of ItemService
+  Map<String, String> differences:
+  
+  1. Price difference:
+     |price1 - price2|
+  
+  2. Rating difference:
+     |rating1 - rating2|
+  
+  3. Specification comparison (if both exist):
+     - Brand difference
+     - Model difference
+     - Weight difference
+     - Warranty difference
+     - Material comparison
+     - Color comparison
+  
+  4. Missing specification flag:
+     - If one has spec and other doesn't
+end note
+
+ItemService -> ItemService: compareSpecifications(spec1, spec2)
+
+alt Both items have specifications
+    ItemService -> ItemService: spec1 = item1.specification()
+    ItemService -> ItemService: spec2 = item2.specification()
+    
+    note right of ItemService
+      Specification comparison:
+      
+      Brand: "Dell" vs "HP"
+      Model: "XPS 15" vs "Pavilion"
+      Weight: 2.5kg vs 2.3kg
+      Warranty: 24 vs 12 months
+      Material: "Aluminum" vs "Plastic"
+      Color: "Silver" vs "Black"
+    end note
+    
+else One or both missing specification
+    note right of ItemService
+      Add to differences:
+      "specification": "Item1 has spec, Item2 missing"
+      or
+      "specification": "Both items missing specifications"
+    end note
+end
+
+== Build Result ==
+
+ItemService -> ItemService: new ComparisionResult(\n  bestPriceItemId,\n  bestPrice,\n  bestRankedItemId,\n  bestRating,\n  differences\n)
+
+note right of ItemService
+  ComparisionResult includes:
+  {
+    "bestPriceItemId": "xxx",
+    "bestPrice": 800.00,
+    "bestRankedItem": "yyy",
+    "bestRating": 4.8,
+    "differences": {
+      "priceDifference": "700.00",
+      "ratingDifference": "0.6",
+      "brandDifference": "Dell vs HP",
+      "modelDifference": "XPS 15 vs Pavilion",
+      "weightDifference": "0.2 kg",
+      "warrantyDifference": "12 months",
+      "materialDifference": "Aluminum vs Plastic"
+    }
+  }
+end note
+
+ItemService --> ItemController: ComparisionResult
+deactivate ItemService
+
+ItemController --> Client: HTTP 200 OK\n{\n  ComparisionResult JSON\n}
+deactivate ItemController
+
+== Example Scenarios ==
+
+note over ItemService
+  Scenario 1: Both with specifications
+  - Compare all spec fields
+  - Show detailed differences
+  
+  Scenario 2: One with specification
+  - Flag missing specification
+  - Compare basic fields only
+  
+  Scenario 3: Both without specifications
+  - Compare price and rating only
+  - Note: No specifications available
+end note
 
 @enduml

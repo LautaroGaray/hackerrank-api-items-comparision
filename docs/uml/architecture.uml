@@ -1,127 +1,220 @@
 @startuml Hexagonal Architecture
 
-!define RECTANGLE class
+skinparam packageStyle rectangle
 
-skinparam backgroundColor #FEFEFE
-skinparam component {
-  BackgroundColor<<domain>> LightYellow
-  BackgroundColor<<application>> LightBlue
-  BackgroundColor<<inbound>> LightGreen
-  BackgroundColor<<outbound>> LightCoral
-  BorderColor Black
+package "Infrastructure Layer" {
+    
+    package "Inbound Adapters" {
+        class ItemController <<REST Controller>> {
+            - createItemUseCase: CreateItemUseCase
+            - getItemUseCase: GetItemUseCase
+            - updateItemUseCase: UpdateItemUseCase
+            - deleteItemUseCase: DeleteItemUseCase
+            - comparisionUseCase: ComparisionUseCase
+            + createItem(request: CreateItemRequest): Item
+            + getById(id: String): Item
+            + updateItem(item: Item): Item
+            + deleteItem(id: String): void
+            + compareItems(id1: String, id2: String): ComparisionResult
+        }
+        
+        class CreateItemRequest <<DTO>> {
+            + name: String
+            + imageUrl: String
+            + description: String
+            + price: BigDecimal
+            + rating: Double
+            + specification: Specification
+        }
+        
+        class JwtAuthenticationFilter {
+            + doFilterInternal()
+        }
+    }
+    
+    package "Outbound Adapters" {
+        class ItemJpaAdapter <<Repository Adapter>> {
+            - itemJpaRepository: ItemJpaRepository
+            - itemEntityMapper: ItemEntityMapper
+            + save(item: Item): Item
+            + findById(id: String): Optional<Item>
+            + deleteById(id: String): void
+        }
+        
+        interface ItemJpaRepository <<Spring Data JPA>> {
+            + save(entity: ItemEntity): ItemEntity
+            + findById(id: String): Optional<ItemEntity>
+            + deleteById(id: String): void
+        }
+        
+        class ItemEntity <<JPA Entity>> {
+            - id: String
+            - name: String
+            - imageUrl: String
+            - description: String
+            - price: BigDecimal
+            - rating: Double
+            - specification: Specification
+            + toDomain(): Item
+            + {static} fromDomain(item: Item): ItemEntity
+        }
+        
+        class ItemEntityMapper {
+            + toDomain(entity: ItemEntity): Item
+            + toEntity(item: Item): ItemEntity
+        }
+    }
+    
+    package "Configuration" {
+        class SecurityConfig {
+            + securityFilterChain()
+            + authenticationManager()
+            + passwordEncoder()
+        }
+        
+        class SwaggerConfig {
+            + openAPI()
+        }
+    }
 }
 
-package "Domain Layer" <<domain>> {
-  [Item Model]
-  [User Model]
-  [ComparisionResult]
-  [ItemValidator]
-  [Exceptions]
+package "Application Layer" {
+    class ItemService <<Service>> {
+        - itemRepository: ItemRepositoryPort
+        + createItem(item: Item): Item
+        + getItemById(id: String): Item
+        + updateItem(item: Item): Item
+        + deleteItem(id: String): void
+        + compare(id1: String, id2: String): ComparisionResult
+    }
 }
 
-package "Application Layer" <<application>> {
-  [ItemService]
-  [AuthService]
+package "Domain Layer" {
+    class Item <<Entity>> {
+        - id: String
+        - name: String
+        - imageUrl: String
+        - description: String
+        - price: BigDecimal
+        - rating: Double
+        - specification: Specification
+        + withId(newId: String): Item
+    }
+    
+    class Specification <<Value Object>> {
+        - brand: String
+        - model: String
+        - color: String
+        - weight: Double
+        - dimensions: String
+        - material: String
+        - warrantyMonths: Integer
+    }
+    
+    class ComparisionResult <<Value Object>> {
+        - bestPriceItemId: String
+        - bestPrice: Double
+        - bestRankedItem: String
+        - bestRating: Double
+        - differences: Map<String, String>
+    }
+    
+    class ItemValidator <<Service>> {
+        + {static} validate(item: Item): void
+        + {static} validateIdNotNull(id: String): void
+    }
+    
+    class SpecificationValidator <<Service>> {
+        + {static} validate(specification: Specification): void
+    }
+    
+    interface CreateItemUseCase <<Port>> {
+        + createItem(item: Item): Item
+    }
+    
+    interface GetItemUseCase <<Port>> {
+        + getItemById(id: String): Item
+    }
+    
+    interface UpdateItemUseCase <<Port>> {
+        + updateItem(item: Item): Item
+    }
+    
+    interface DeleteItemUseCase <<Port>> {
+        + deleteItem(id: String): void
+    }
+    
+    interface ComparisionUseCase <<Port>> {
+        + compare(id1: String, id2: String): ComparisionResult
+    }
+    
+    interface ItemRepositoryPort <<Port>> {
+        + save(item: Item): Item
+        + findById(id: String): Optional<Item>
+        + deleteById(id: String): void
+    }
 }
 
-package "Ports (Inbound)" {
-  interface "CreateItemUseCase" as CreateUC
-  interface "GetItemUseCase" as GetUC
-  interface "UpdateItemUseCase" as UpdateUC
-  interface "DeleteItemUseCase" as DeleteUC
-  interface "ComparisionUseCase" as CompareUC
-}
+' Relationships
+ItemController ..> CreateItemUseCase : uses
+ItemController ..> GetItemUseCase : uses
+ItemController ..> UpdateItemUseCase : uses
+ItemController ..> DeleteItemUseCase : uses
+ItemController ..> ComparisionUseCase : uses
+ItemController ..> CreateItemRequest : receives
+ItemController ..> Item : returns
+ItemController ..> Specification : handles
 
-package "Ports (Outbound)" {
-  interface "ItemRepositoryPort" as ItemRepo
-  interface "UserRepositoryPort" as UserRepo
-  interface "TokenProviderPort" as TokenPort
-}
+ItemService ..|> CreateItemUseCase : implements
+ItemService ..|> GetItemUseCase : implements
+ItemService ..|> UpdateItemUseCase : implements
+ItemService ..|> DeleteItemUseCase : implements
+ItemService ..|> ComparisionUseCase : implements
+ItemService ..> ItemRepositoryPort : uses
+ItemService ..> Item : manages
+ItemService ..> ItemValidator : uses
+ItemService ..> ComparisionResult : creates
 
-package "Adapters Inbound" <<inbound>> {
-  [ItemController]
-  [AuthController]
-  [REST API]
-  [CreateItemRequest DTO]
-}
+ItemJpaAdapter ..|> ItemRepositoryPort : implements
+ItemJpaAdapter ..> ItemJpaRepository : uses
+ItemJpaAdapter ..> ItemEntityMapper : uses
+ItemJpaAdapter ..> Item : converts
+ItemJpaAdapter ..> ItemEntity : uses
 
-package "Adapters Outbound" <<outbound>> {
-  [JsonItemRepository]
-  [InMemoryUserRepository]
-  [JwtUtil]
-  [ItemEntity]
-  [ItemEntityMapper]
-  [UUID Generator]
-}
+ItemEntityMapper ..> Item : converts
+ItemEntityMapper ..> ItemEntity : converts
 
-package "Infrastructure" {
-  [SecurityConfig]
-  [JwtAuthenticationFilter]
-  [OpenApiConfig]
-  [BeanConfig]
-}
+ItemEntity ..> Item : maps to
+ItemEntity ..> Specification : embeds
 
-' Connections
-[REST API] --> [ItemController]
-[REST API] --> [AuthController]
+Item *-- Specification : contains
+ItemValidator ..> Item : validates
+ItemValidator ..> SpecificationValidator : delegates
+SpecificationValidator ..> Specification : validates
 
-[ItemController] --> [CreateItemRequest DTO]
-[CreateItemRequest DTO] ..> [Item Model] : converts to (no id)
-
-[ItemController] ..> CreateUC
-[ItemController] ..> GetUC
-[ItemController] ..> UpdateUC
-[ItemController] ..> DeleteUC
-[ItemController] ..> CompareUC
-
-[AuthController] --> [AuthService]
-
-[ItemService] ..|> CreateUC
-[ItemService] ..|> GetUC
-[ItemService] ..|> UpdateUC
-[ItemService] ..|> DeleteUC
-[ItemService] ..|> CompareUC
-
-[ItemService] --> ItemRepo
-[ItemService] --> [ItemValidator]
-[ItemService] --> [UUID Generator] : generates ID
-[AuthService] --> UserRepo
-[AuthService] --> TokenPort
-
-ItemRepo <|.. [JsonItemRepository]
-UserRepo <|.. [InMemoryUserRepository]
-TokenPort <|.. [JwtUtil]
-
-[JsonItemRepository] --> [ItemEntity]
-[JsonItemRepository] --> [ItemEntityMapper]
-
-[ItemEntityMapper] --> [Item Model]
-[UUID Generator] ..> [Item Model] : adds id
-
-[SecurityConfig] --> [JwtAuthenticationFilter]
-[JwtAuthenticationFilter] --> TokenPort
-
-note right of [CreateItemRequest DTO]
-  POST /items payload
-  NO id field
-  Only business data
+note right of Item
+  Domain entity with auto-generated ID.
+  Contains optional Specification.
+  Immutable record pattern.
 end note
 
-note right of [UUID Generator]
-  Auto-generates unique IDs
-  Used during item creation
-  UUID.randomUUID()
+note right of Specification
+  Value Object for product specs.
+  All fields optional.
+  Embedded in Item and ItemEntity.
 end note
 
-note right of [Domain Layer]
-  Core business logic
-  No dependencies on frameworks
-  Item can exist with or without id
+note right of ItemController
+  REST endpoint removes ID from
+  CreateItemRequest. ID is
+  auto-generated in service layer.
 end note
 
-note right of [Adapters Outbound]
-  External systems
-  Persistence, Security, ID generation
+note right of ItemService
+  Generates UUID for new items.
+  Validates items before persistence.
+  Validates specifications via
+  SpecificationValidator.
 end note
 
 @enduml

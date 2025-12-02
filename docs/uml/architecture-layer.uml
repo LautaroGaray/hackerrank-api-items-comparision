@@ -1,0 +1,32 @@
+@startuml Infrastructure Layer
+
+package "REST Layer" {
+    class ItemController {
+        + createItem()
+        + updateItem()
+        + getById()
+        + deleteItem()
+        + compareItems()
+    }
+    
+    class CreateItemRequest {
+        + name: String
+        + specification: Specification
+    }
+}
+
+package "Persistence" {
+    class ItemJpaAdapter {
+        + save()
+        + findById()
+    }
+    
+    class ItemEntity {
+        - specification: Specification
+    }
+}
+
+ItemController ..> CreateItemRequest
+ItemJpaAdapter ..> ItemEntity
+
+@enduml

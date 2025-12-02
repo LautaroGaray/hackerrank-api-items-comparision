@@ -1,88 +1,156 @@
 @startuml Domain Model
 
-skinparam classAttributeIconSize 0
-
-class Item {
-  - String id
-  - String name
-  - String imageUrl
-  - String description
-  - BigDecimal price
-  - Double rating
-  --
-  + Item(id, name, imageUrl, description, price, rating)
-  + Item(name, imageUrl, description, price, rating) // without id
-  + withId(String newId) : Item
-  + id() : String
-  + name() : String
-  + price() : BigDecimal
-  + rating() : Double
+package "Domain Layer" {
+    
+    class Item <<Entity>> {
+        - id: String
+        - name: String
+        - imageUrl: String
+        - description: String
+        - price: BigDecimal
+        - rating: Double
+        - specification: Specification
+        + Item(id, name, imageUrl, description, price, rating, specification)
+        + Item(name, imageUrl, description, price, rating, specification)
+        + withId(newId: String): Item
+        + id(): String
+        + name(): String
+        + imageUrl(): String
+        + description(): String
+        + price(): BigDecimal
+        + rating(): Double
+        + specification(): Specification
+    }
+    
+    class Specification <<Value Object>> {
+        - brand: String
+        - model: String
+        - color: String
+        - weight: Double
+        - dimensions: String
+        - material: String
+        - warrantyMonths: Integer
+        + Specification(brand, model, color, weight, dimensions, material, warrantyMonths)
+        + brand(): String
+        + model(): String
+        + color(): String
+        + weight(): Double
+        + dimensions(): String
+        + material(): String
+        + warrantyMonths(): Integer
+    }
+    
+    class ComparisionResult <<Value Object>> {
+        - bestPriceItemId: String
+        - bestPrice: Double
+        - bestRankedItem: String
+        - bestRating: Double
+        - differences: Map<String, String>
+        + ComparisionResult(bestPriceItemId, bestPrice, bestRankedItem, bestRating, differences)
+        + bestPriceItemId(): String
+        + bestPrice(): Double
+        + bestRankedItem(): String
+        + bestRating(): Double
+        + differences(): Map<String, String>
+    }
+    
+    class ItemValidator <<Service>> {
+        + {static} validate(item: Item): void
+        + {static} validateNotNull(item: Item): void
+        + {static} validateIdNotNull(id: String): void
+        + {static} validateName(name: String): void
+        + {static} validatePrice(price: BigDecimal): void
+        + {static} validateRating(rating: Double): void
+    }
+    
+    class SpecificationValidator <<Service>> {
+        + {static} validate(specification: Specification): void
+        - {static} validateBrand(brand: String): void
+        - {static} validateWeight(weight: Double): void
+        - {static} validateWarrantyMonths(warrantyMonths: Integer): void
+    }
+    
+    class InvalidItemException <<Exception>> {
+        + InvalidItemException(message: String)
+    }
+    
+    class ItemNotFoundException <<Exception>> {
+        + ItemNotFoundException(id: String)
+    }
+    
+    interface CreateItemUseCase <<Port>> {
+        + createItem(item: Item): Item
+    }
+    
+    interface GetItemUseCase <<Port>> {
+        + getItemById(id: String): Item
+    }
+    
+    interface UpdateItemUseCase <<Port>> {
+        + updateItem(item: Item): Item
+    }
+    
+    interface DeleteItemUseCase <<Port>> {
+        + deleteItem(id: String): void
+    }
+    
+    interface ComparisionUseCase <<Port>> {
+        + compare(id1: String, id2: String): ComparisionResult
+    }
+    
+    interface ItemRepositoryPort <<Port>> {
+        + save(item: Item): Item
+        + findById(id: String): Optional<Item>
+        + deleteById(id: String): void
+    }
+    
+    Item "1" *-- "0..1" Specification : contains
+    ItemValidator ..> Item : validates
+    ItemValidator ..> SpecificationValidator : uses
+    SpecificationValidator ..> Specification : validates
+    CreateItemUseCase ..> Item : creates
+    GetItemUseCase ..> Item : retrieves
+    UpdateItemUseCase ..> Item : updates
+    DeleteItemUseCase ..> Item : deletes
+    ComparisionUseCase ..> Item : compares
+    ComparisionUseCase ..> ComparisionResult : returns
+    ItemRepositoryPort ..> Item : persists
+    ItemValidator ..> InvalidItemException : throws
+    SpecificationValidator ..> InvalidItemException : throws
+    GetItemUseCase ..> ItemNotFoundException : throws
+    UpdateItemUseCase ..> ItemNotFoundException : throws
+    DeleteItemUseCase ..> ItemNotFoundException : throws
+    ComparisionUseCase ..> ItemNotFoundException : throws
 }
-
-class User {
-  - String username
-  - String password
-  --
-  + User(String, String)
-  + username() : String
-  + password() : String
-}
-
-class ComparisionResult {
-  - Item cheaperItem
-  - Item betterRatedItem
-  --
-  + ComparisionResult(Item, Item)
-  + cheaperItem() : Item
-  + betterRatedItem() : Item
-}
-
-class ItemValidator {
-  + {static} validate(Item) : void
-  - {static} validatePrice(BigDecimal)
-  - {static} validateRating(Double)
-}
-
-class InvalidItemException {
-  + InvalidItemException(String)
-}
-
-class ItemNotFoundException {
-  + ItemNotFoundException(String)
-}
-
-class CreateItemRequest {
-  - String name
-  - String imageUrl
-  - String description
-  - BigDecimal price
-  - Double rating
-  --
-  + CreateItemRequest(...)
-}
-
-ItemValidator ..> Item : validates
-ItemValidator ..> InvalidItemException : throws
-ComparisionResult "1" *-- "2" Item : contains
-CreateItemRequest ..> Item : converts to
 
 note right of Item
-  Immutable record
-  - Constructor with id (for updates/gets)
-  - Constructor without id (for creation)
-  - withId() creates new instance with ID
+  Entity representing a product item.
+  ID is auto-generated on creation.
+  Contains optional Specification.
+end note
+
+note right of Specification
+  Value Object containing
+  product specifications.
+  All fields are optional.
+  Immutable record.
 end note
 
 note right of ItemValidator
-  Domain service
-  Does NOT validate id
-  (id is auto-generated)
+  Validates Item invariants:
+  - Item not null
+  - Name required
+  - Price >= 0
+  - Rating 0.0-5.0
+  - Delegates to SpecificationValidator
 end note
 
-note right of CreateItemRequest
-  DTO for POST /items
-  Does NOT include id field
-  Used only for creation
+note right of SpecificationValidator
+  Validates Specification:
+  - Brand not blank if present
+  - Weight >= 0 if present
+  - Warranty >= 0 if present
+  - Null specification is valid
 end note
 
 @enduml

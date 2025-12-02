@@ -1,82 +1,228 @@
-@startuml Create Item Flow
+@startuml Item Creation Workflow
 
-actor User
-participant "ItemController" as Controller
-participant "CreateItemRequest" as DTO
-participant "ItemService" as Service
-participant "ItemValidator" as Validator
-participant "UUID Generator" as UUID
-participant "ItemRepositoryPort" as Port
-participant "JsonItemRepository" as Repo
-participant "ItemEntityMapper" as Mapper
-database "items.json" as DB
+actor Client
+participant ItemController
+participant ItemService
+participant ItemValidator
+participant SpecificationValidator
+participant ItemRepository
+database Database
 
-User -> Controller: POST /items\n{name, imageUrl, description, price, rating}\n(NO ID in request)
-activate Controller
+== Create Item (ID Auto-generated) ==
 
-Controller -> DTO: CreateItemRequest\n(without id)
-activate DTO
-DTO --> Controller: dto
-deactivate DTO
+Client -> ItemController: POST /items\n(CreateItemRequest without ID)
+activate ItemController
 
-Controller -> Controller: Convert DTO to Item\n(id = null)
+note right of ItemController
+  CreateItemRequest includes:
+  - name, imageUrl, description
+  - price, rating
+  - specification (optional)
+  
+  NO ID field in request
+end note
 
-Controller -> Service: createItem(itemWithoutId)
-activate Service
+ItemController -> ItemController: Convert DTO to Item\n(without ID)
+ItemController -> ItemService: createItem(itemWithoutId)
+activate ItemService
 
-Service -> Validator: validate(item)
-activate Validator
-alt Invalid Item
-  Validator --> Service: throw InvalidItemException
-  Service --> Controller: InvalidItemException
-  Controller --> User: 400 Bad Request
-else Valid Item
-  Validator --> Service: void
-  deactivate Validator
-  
-  Service -> UUID: UUID.randomUUID()
-  activate UUID
-  UUID --> Service: generatedId
-  deactivate UUID
-  
-  Service -> Service: item.withId(generatedId)
-  
-  Service -> Port: save(itemWithId)
-  activate Port
-  
-  Port -> Repo: save(itemWithId)
-  activate Repo
-  
-  Repo -> Mapper: toEntity(itemWithId)
-  activate Mapper
-  Mapper --> Repo: ItemEntity
-  deactivate Mapper
-  
-  Repo -> DB: write JSON\n(with generated ID)
-  DB --> Repo: success
-  
-  Repo --> Port: savedItem (with ID)
-  deactivate Repo
-  
-  Port --> Service: savedItem (with ID)
-  deactivate Port
-  
-  Service --> Controller: savedItem (with ID)
-  deactivate Service
-  
-  Controller --> User: 200 OK\n{id, name, imageUrl, description, price, rating}
-  deactivate Controller
+ItemService -> ItemValidator: validate(item)
+activate ItemValidator
+
+ItemValidator -> ItemValidator: validateNotNull(item)
+ItemValidator -> ItemValidator: validateName(name)
+ItemValidator -> ItemValidator: validatePrice(price)
+ItemValidator -> ItemValidator: validateRating(rating)
+
+ItemValidator -> SpecificationValidator: validate(specification)
+activate SpecificationValidator
+
+alt Specification is not null
+    SpecificationValidator -> SpecificationValidator: validateBrand(brand)
+    SpecificationValidator -> SpecificationValidator: validateWeight(weight)
+    SpecificationValidator -> SpecificationValidator: validateWarrantyMonths(warrantyMonths)
+else Specification is null
+    SpecificationValidator --> ItemValidator: OK (null is valid)
 end
 
-note right of UUID
-  Generates unique UUID v4
-  No collision validation needed
-  (probability ~ 1 in 2.71 quintillion)
+SpecificationValidator --> ItemValidator: Validation OK
+deactivate SpecificationValidator
+
+ItemValidator --> ItemService: Validation OK
+deactivate ItemValidator
+
+ItemService -> ItemService: Generate UUID for item
+note right of ItemService
+  Uses UUID.randomUUID()
+  to generate unique ID
 end note
 
-note right of Controller
-  Request body does NOT include id
-  Response INCLUDES generated id
+ItemService -> ItemService: item = item.withId(generatedId)
+
+ItemService -> ItemRepository: save(itemWithId)
+activate ItemRepository
+
+ItemRepository -> Database: INSERT INTO items\n(id, name, price, rating,\nspecification, ...)
+Database --> ItemRepository: Item saved
+ItemRepository --> ItemService: Return saved item
+deactivate ItemRepository
+
+ItemService --> ItemController: Return item with ID
+deactivate ItemService
+
+ItemController --> Client: HTTP 200\nItem with generated ID
+deactivate ItemController
+
+== Update Item (ID Required) ==
+
+Client -> ItemController: PUT /items\n(Item with ID)
+activate ItemController
+
+note right of ItemController
+  Update request MUST include:
+  - id (existing item)
+  - all other fields
+  - specification (optional)
 end note
+
+ItemController -> ItemService: updateItem(item)
+activate ItemService
+
+ItemService -> ItemValidator: validateNotNull(item)
+ItemService -> ItemValidator: validateIdNotNull(item.id())
+
+ItemService -> ItemRepository: findById(id)
+activate ItemRepository
+ItemRepository -> Database: SELECT * FROM items WHERE id = ?
+Database --> ItemRepository: Item found
+ItemRepository --> ItemService: Optional<Item>
+deactivate ItemRepository
+
+alt Item exists
+    ItemService -> ItemValidator: validate(item)
+    activate ItemValidator
+    ItemValidator -> SpecificationValidator: validate(specification)
+    activate SpecificationValidator
+    SpecificationValidator --> ItemValidator: OK
+    deactivate SpecificationValidator
+    ItemValidator --> ItemService: OK
+    deactivate ItemValidator
+    
+    ItemService -> ItemRepository: save(item)
+    activate ItemRepository
+    ItemRepository -> Database: UPDATE items SET ...\nWHERE id = ?
+    Database --> ItemRepository: Updated
+    ItemRepository --> ItemService: Updated item
+    deactivate ItemRepository
+    
+    ItemService --> ItemController: Updated item
+else Item not found
+    ItemService --> ItemController: ItemNotFoundException
+end
+
+ItemController --> Client: HTTP 200\nUpdated item
+deactivate ItemService
+deactivate ItemController
+
+== Get Item ==
+
+Client -> ItemController: GET /items/{id}
+activate ItemController
+
+ItemController -> ItemService: getItemById(id)
+activate ItemService
+
+ItemService -> ItemValidator: validateIdNotNull(id)
+ItemService -> ItemRepository: findById(id)
+activate ItemRepository
+
+ItemRepository -> Database: SELECT * FROM items\nWHERE id = ?
+Database --> ItemRepository: Item with specification
+
+ItemRepository --> ItemService: Optional<Item>
+deactivate ItemRepository
+
+alt Item exists
+    ItemService --> ItemController: Item (with specification)
+else Item not found
+    ItemService --> ItemController: ItemNotFoundException
+end
+
+deactivate ItemService
+
+ItemController --> Client: HTTP 200\nItem with specification
+deactivate ItemController
+
+== Compare Items ==
+
+Client -> ItemController: GET /items/compare?id1=x&id2=y
+activate ItemController
+
+ItemController -> ItemService: compare(id1, id2)
+activate ItemService
+
+ItemService -> ItemRepository: findById(id1)
+activate ItemRepository
+ItemRepository -> Database: SELECT * FROM items WHERE id = id1
+Database --> ItemRepository: Item1
+ItemRepository --> ItemService: Item1
+deactivate ItemRepository
+
+ItemService -> ItemRepository: findById(id2)
+activate ItemRepository
+ItemRepository -> Database: SELECT * FROM items WHERE id = id2
+Database --> ItemRepository: Item2
+ItemRepository --> ItemService: Item2
+deactivate ItemRepository
+
+ItemService -> ItemService: Calculate best price
+ItemService -> ItemService: Calculate best rating
+ItemService -> ItemService: Calculate differences
+
+note right of ItemService
+  Comparison considers:
+  - Price comparison
+  - Rating comparison
+  - Specification differences
+  - Additional metadata
+end note
+
+ItemService --> ItemController: ComparisionResult
+deactivate ItemService
+
+ItemController --> Client: HTTP 200\nComparisionResult
+deactivate ItemController
+
+== Delete Item ==
+
+Client -> ItemController: DELETE /items/{id}
+activate ItemController
+
+ItemController -> ItemService: deleteItem(id)
+activate ItemService
+
+ItemService -> ItemValidator: validateIdNotNull(id)
+ItemService -> ItemRepository: findById(id)
+activate ItemRepository
+ItemRepository --> ItemService: Optional<Item>
+deactivate ItemRepository
+
+alt Item exists
+    ItemService -> ItemRepository: deleteById(id)
+    activate ItemRepository
+    ItemRepository -> Database: DELETE FROM items WHERE id = ?
+    Database --> ItemRepository: Deleted
+    ItemRepository --> ItemService: void
+    deactivate ItemRepository
+    
+    ItemService --> ItemController: void
+else Item not found
+    ItemService --> ItemController: ItemNotFoundException
+end
+
+deactivate ItemService
+
+ItemController --> Client: HTTP 200
+deactivate ItemController
 
 @enduml
