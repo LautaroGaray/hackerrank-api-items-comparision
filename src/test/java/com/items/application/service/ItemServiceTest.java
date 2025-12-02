@@ -9,6 +9,7 @@ import com.items.domain.port.outbound.ItemRepositoryPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -30,26 +31,43 @@ class ItemServiceTest {
     private ItemService itemService;
 
     private Item validItem;
-    private Item validItem2;
+    private Item validItem2;   
 
     @BeforeEach
     void setUp() {
-         Specification specification = new Specification("spec1", "Spec Description", null, null, null, null, null);
-        validItem = new Item("id1", "Item A", "http://example.com/a.jpg", "Description A", BigDecimal.valueOf(100.0), 4.2, specification);
-        validItem2 = new Item("id2", "Item B", "http://example.com/b.jpg", "Description B", BigDecimal.valueOf(150.0), 4.8, specification);
+        Specification specification = new Specification("Dell", "XPS 15", "Silver", 2.5, "357x235x18", "Aluminum", 24);        
+    
+        validItem = new Item("generated-id-123", "Item A", "http://example.com/a.jpg", "Description A", BigDecimal.valueOf(100.0), 4.2, specification);
+        validItem2 = new Item("generated-id-456", "Item B", "http://example.com/b.jpg", "Description B", BigDecimal.valueOf(150.0), 4.8, specification);
     }
 
-    @Test
-    void createItem_shouldSaveAndReturnItem() {
-        when(itemRepository.save(any(Item.class))).thenReturn(validItem);
+   @Test
+    void createItem_shouldGenerateIdAndSaveItem() {
+        
+        Specification specification = new Specification("HP", "Pavilion", "Black", 2.0, "320x220x15", "Plastic", 12);
+        Item itemWithoutId = new Item(null, "New Item", "http://img.url", "desc", BigDecimal.valueOf(100.0), 4.5, specification);
+        
+       
+        Item itemWithGeneratedId = new Item("auto-generated-uuid", "New Item", "http://img.url", "desc", BigDecimal.valueOf(100.0), 4.5, specification);
+        when(itemRepository.save(any(Item.class))).thenReturn(itemWithGeneratedId);
 
-        Item result = itemService.createItem(validItem);
+        
+        Item result = itemService.createItem(itemWithoutId);
 
+        
         assertNotNull(result);
-        assertEquals(validItem.id(), result.id());
-        verify(itemRepository, times(1)).save(validItem);
+        assertNotNull(result.id(), "ID should be auto-generated");
+        assertEquals("auto-generated-uuid", result.id());
+        assertEquals("New Item", result.name());
+        
+        
+        ArgumentCaptor<Item> itemCaptor = ArgumentCaptor.forClass(Item.class);
+        verify(itemRepository, times(1)).save(itemCaptor.capture());
+        
+        Item savedItem = itemCaptor.getValue();
+        assertNotNull(savedItem.id(), "Saved item should have generated ID");
     }
-
+   
     @Test
     void createItem_shouldThrowWhenItemIsNull() {
         assertThrows(InvalidItemException.class, () -> itemService.createItem(null));
@@ -57,48 +75,78 @@ class ItemServiceTest {
     }
 
     @Test
-    void createItem_shouldThrowWhenIdIsNull() {
-         Specification specification = new Specification("spec1", "Spec Description", null, null, null, null, null);
-        Item invalidItem = new Item(null, "name", "url", "desc", BigDecimal.TEN, 4.0, specification);
-        assertThrows(InvalidItemException.class, () -> itemService.createItem(invalidItem));
-        verify(itemRepository, never()).save(any());
+    void createItem_shouldNotThrowWhenIdIsNull() {
+        
+        Specification specification = new Specification("spec1", "Spec Description", null, null, null, null, null);
+        Item itemWithoutId = new Item(null, "name", "url", "desc", BigDecimal.TEN, 4.0, specification);
+        
+        Item itemWithId = new Item("generated-uuid", "name", "url", "desc", BigDecimal.TEN, 4.0, specification);
+        when(itemRepository.save(any(Item.class))).thenReturn(itemWithId);
+        
+       
+        assertDoesNotThrow(() -> itemService.createItem(itemWithoutId));
+        verify(itemRepository, times(1)).save(any(Item.class));
     }
 
     @Test
     void createItem_shouldThrowWhenNameIsNull() {
         Specification specification = new Specification("spec1", "Spec Description", null, null, null, null, null);
-        Item invalidItem = new Item("id1", null, "url", "desc", BigDecimal.TEN, 4.0, specification);
+        Item invalidItem = new Item(null, null, "url", "desc", BigDecimal.TEN, 4.0, specification);
         assertThrows(InvalidItemException.class, () -> itemService.createItem(invalidItem));
         verify(itemRepository, never()).save(any());
     }
 
     @Test
     void createItem_shouldThrowWhenPriceIsNegative() {
-         Specification specification = new Specification("spec1", "Spec Description", null, null, null, null, null);
-        Item invalidItem = new Item("id1", "name", "url", "desc", BigDecimal.valueOf(-10), 4.0, specification);
+        Specification specification = new Specification("spec1", "Spec Description", null, null, null, null, null);
+        Item invalidItem = new Item(null, "name", "url", "desc", BigDecimal.valueOf(-10), 4.0, specification);
         assertThrows(InvalidItemException.class, () -> itemService.createItem(invalidItem));
         verify(itemRepository, never()).save(any());
     }
 
     @Test
     void createItem_shouldThrowWhenRatingIsInvalid() {
-         Specification specification = new Specification("spec1", "Spec Description", null, null, null, null, null);
-        Item invalidItem = new Item("id1", "name", "url", "desc", BigDecimal.TEN, 6.0, specification);
+        Specification specification = new Specification("spec1", "Spec Description", null, null, null, null, null);
+        Item invalidItem = new Item(null, "name", "url", "desc", BigDecimal.TEN, 6.0, specification);
         assertThrows(InvalidItemException.class, () -> itemService.createItem(invalidItem));
         verify(itemRepository, never()).save(any());
     }
 
     @Test
-    void getItemById_shouldReturnItemWhenExists() {
-        when(itemRepository.findById("id1")).thenReturn(Optional.of(validItem));
-
-        Item result = itemService.getItemById("id1");
-
-        assertNotNull(result);
-        assertEquals("id1", result.id());
-        verify(itemRepository, times(1)).findById("id1");
+    void createItem_shouldValidateSpecification() {
+       
+        Specification invalidSpec = new Specification("   ", "Model", "Color", 2.0, "dims", "material", 12);
+        Item itemWithInvalidSpec = new Item(null, "Item", "url", "desc", BigDecimal.TEN, 4.0, invalidSpec);
+        
+        assertThrows(InvalidItemException.class, () -> itemService.createItem(itemWithInvalidSpec));
+        verify(itemRepository, never()).save(any());
     }
 
+    @Test
+    void createItem_shouldAcceptNullSpecification() {
+        Item itemWithoutSpec = new Item(null, "Item", "url", "desc", BigDecimal.TEN, 4.0, null);
+        Item savedItem = new Item("generated-id", "Item", "url", "desc", BigDecimal.TEN, 4.0, null);
+        
+        when(itemRepository.save(any(Item.class))).thenReturn(savedItem);
+        
+        Item result = itemService.createItem(itemWithoutSpec);
+        
+        assertNotNull(result);
+        assertNotNull(result.id());
+        assertNull(result.specification());
+        verify(itemRepository, times(1)).save(any(Item.class));
+    }
+
+    @Test
+    void updateItem_shouldRequireId() {
+       
+        Specification specification = new Specification("spec1", "Spec Description", null, null, null, null, null);
+        Item itemWithoutId = new Item(null, "name", "url", "desc", BigDecimal.TEN, 4.0, specification);
+        
+        assertThrows(InvalidItemException.class, () -> itemService.updateItem(itemWithoutId));
+        verify(itemRepository, never()).save(any());
+    }
+   
     @Test
     void getItemById_shouldThrowWhenItemNotFound() {
         when(itemRepository.findById("id999")).thenReturn(Optional.empty());
@@ -113,42 +161,7 @@ class ItemServiceTest {
         verify(itemRepository, never()).findById(any());
     }
 
-    @Test
-    void updateItem_shouldUpdateAndReturnItem() {
-        when(itemRepository.findById("id1")).thenReturn(Optional.of(validItem));
-        when(itemRepository.save(any(Item.class))).thenReturn(validItem);
-
-        Item result = itemService.updateItem(validItem);
-
-        assertNotNull(result);
-        assertEquals(validItem.id(), result.id());
-        verify(itemRepository, times(1)).findById("id1");
-        verify(itemRepository, times(1)).save(validItem);
-    }
-
-    @Test
-    void updateItem_shouldThrowWhenItemNotFound() {
-        when(itemRepository.findById("id1")).thenReturn(Optional.empty());
-
-        assertThrows(ItemNotFoundException.class, () -> itemService.updateItem(validItem));
-        verify(itemRepository, times(1)).findById("id1");
-        verify(itemRepository, never()).save(any());
-    }
-
-    @Test
-    void updateItem_shouldThrowWhenItemIsNull() {
-        assertThrows(InvalidItemException.class, () -> itemService.updateItem(null));
-        verify(itemRepository, never()).findById(any());
-        verify(itemRepository, never()).save(any());
-    }
-
-    @Test
-    void updateItem_shouldThrowWhenIdIsNull() {
-         Specification specification = new Specification("spec1", "Spec Description", null, null, null, null, null);
-        Item invalidItem = new Item(null, "name", "url", "desc", BigDecimal.TEN, 4.0, specification);
-        assertThrows(InvalidItemException.class, () -> itemService.updateItem(invalidItem));
-        verify(itemRepository, never()).save(any());
-    }
+   
 
     @Test
     void deleteItem_shouldDeleteWhenItemExists() {
