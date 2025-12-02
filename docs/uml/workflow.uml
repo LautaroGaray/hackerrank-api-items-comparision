@@ -2,17 +2,26 @@
 
 actor User
 participant "ItemController" as Controller
+participant "CreateItemRequest" as DTO
 participant "ItemService" as Service
 participant "ItemValidator" as Validator
+participant "UUID Generator" as UUID
 participant "ItemRepositoryPort" as Port
 participant "JsonItemRepository" as Repo
 participant "ItemEntityMapper" as Mapper
 database "items.json" as DB
 
-User -> Controller: POST /items\n{item data}
+User -> Controller: POST /items\n{name, imageUrl, description, price, rating}\n(NO ID in request)
 activate Controller
 
-Controller -> Service: createItem(item)
+Controller -> DTO: CreateItemRequest\n(without id)
+activate DTO
+DTO --> Controller: dto
+deactivate DTO
+
+Controller -> Controller: Convert DTO to Item\n(id = null)
+
+Controller -> Service: createItem(itemWithoutId)
 activate Service
 
 Service -> Validator: validate(item)
@@ -25,31 +34,49 @@ else Valid Item
   Validator --> Service: void
   deactivate Validator
   
-  Service -> Port: save(item)
+  Service -> UUID: UUID.randomUUID()
+  activate UUID
+  UUID --> Service: generatedId
+  deactivate UUID
+  
+  Service -> Service: item.withId(generatedId)
+  
+  Service -> Port: save(itemWithId)
   activate Port
   
-  Port -> Repo: save(item)
+  Port -> Repo: save(itemWithId)
   activate Repo
   
-  Repo -> Mapper: toEntity(item)
+  Repo -> Mapper: toEntity(itemWithId)
   activate Mapper
   Mapper --> Repo: ItemEntity
   deactivate Mapper
   
-  Repo -> DB: write JSON
+  Repo -> DB: write JSON\n(with generated ID)
   DB --> Repo: success
   
-  Repo --> Port: savedItem
+  Repo --> Port: savedItem (with ID)
   deactivate Repo
   
-  Port --> Service: savedItem
+  Port --> Service: savedItem (with ID)
   deactivate Port
   
-  Service --> Controller: savedItem
+  Service --> Controller: savedItem (with ID)
   deactivate Service
   
-  Controller --> User: 200 OK\n{savedItem}
+  Controller --> User: 200 OK\n{id, name, imageUrl, description, price, rating}
   deactivate Controller
 end
+
+note right of UUID
+  Generates unique UUID v4
+  No collision validation needed
+  (probability ~ 1 in 2.71 quintillion)
+end note
+
+note right of Controller
+  Request body does NOT include id
+  Response INCLUDES generated id
+end note
 
 @enduml

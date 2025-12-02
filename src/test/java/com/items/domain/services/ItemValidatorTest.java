@@ -101,4 +101,117 @@ class ItemValidatorTest {
     void validateName_shouldNotThrowWhenNameIsValid() {
         assertDoesNotThrow(() -> ItemValidator.validateName("Valid Name"));
     }
+
+    @Test
+    void validate_shouldNotThrowWhenItemIsValid() {
+    Item validItem = new Item(
+        null,
+        "Laptop",
+        "http://example.com/laptop.jpg",
+        "Gaming laptop",
+        BigDecimal.valueOf(1500.0),
+        4.5
+    );
+        assertDoesNotThrow(() -> ItemValidator.validate(validItem));
+   }
+
+    @Test
+    void validate_shouldThrowWhenItemIsNull() {
+        InvalidItemException exception = assertThrows(
+            InvalidItemException.class,
+            () -> ItemValidator.validate(null)
+        );
+        assertEquals("Item cannot be null", exception.getMessage());
+    }
+
+    @Test
+    void validate_shouldThrowWhenNameIsNull() {
+        Item itemWithNullName = new Item(
+            null,
+            null,
+            "http://example.com/image.jpg",
+            "Description",
+            BigDecimal.valueOf(100.0),
+            4.5
+        );
+        assertThrows(InvalidItemException.class, () -> ItemValidator.validate(itemWithNullName));
+    }
+
+    @Test
+    void validate_shouldThrowWhenNameIsBlank() {
+        Item itemWithBlankName = new Item(
+            null,
+            "   ",
+            "http://example.com/image.jpg",
+            "Description",
+            BigDecimal.valueOf(100.0),
+            4.5
+        );
+        assertThrows(InvalidItemException.class, () -> ItemValidator.validate(itemWithBlankName));
+    }
+
+    @Test
+    void validate_shouldThrowWhenPriceIsNull() {
+        Item itemWithNullPrice = new Item(
+            null,
+            "Laptop",
+            "http://example.com/laptop.jpg",
+            "Description",
+            null,
+            4.5
+        );
+        assertThrows(InvalidItemException.class, () -> ItemValidator.validate(itemWithNullPrice));
+    }
+
+    @Test
+    void validate_shouldThrowWhenPriceIsNegative() {
+        Item itemWithNegativePrice = new Item(
+            null,
+            "Laptop",
+            "http://example.com/laptop.jpg",
+            "Description",
+            BigDecimal.valueOf(-100.0),
+            4.5
+        );
+        assertThrows(InvalidItemException.class, () -> ItemValidator.validate(itemWithNegativePrice));
+    }
+
+    @Test
+    void validate_shouldThrowWhenRatingIsNull() {
+        Item itemWithNullRating = new Item(
+            null,
+            "Laptop",
+            "http://example.com/laptop.jpg",
+            "Description",
+            BigDecimal.valueOf(100.0),
+            null
+        );
+        assertThrows(InvalidItemException.class, () -> ItemValidator.validate(itemWithNullRating));
+    }
+
+    @Test
+    void validate_shouldThrowWhenRatingIsNegative() {
+        Item itemWithNegativeRating = new Item(
+            null,
+            "Laptop",
+            "http://example.com/laptop.jpg",
+            "Description",
+            BigDecimal.valueOf(100.0),
+            -1.0
+        );
+        assertThrows(InvalidItemException.class, () -> ItemValidator.validate(itemWithNegativeRating));
+    }
+
+    @Test
+    void validate_shouldThrowWhenRatingIsAboveFive() {
+        Item itemWithHighRating = new Item(
+            null,
+            "Laptop",
+            "http://example.com/laptop.jpg",
+            "Description",
+            BigDecimal.valueOf(100.0),
+            5.1
+        );
+        assertThrows(InvalidItemException.class, () -> ItemValidator.validate(itemWithHighRating));
+    }
 }

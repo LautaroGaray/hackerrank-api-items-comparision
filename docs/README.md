@@ -65,7 +65,13 @@ TOKEN=$(curl -s -X POST http://localhost:8083/auth/login \
 curl -s -X POST http://localhost:8083/items \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $TOKEN" \
-  -d '{"id":null,"name":"Item A","imageUrl":"http://x","description":"desc A","price":100.0,"rating":4.2}' | jq .
+  -d '{
+    "name":"Laptop",
+    "imageUrl":"http://example.com/laptop.jpg",
+    "description":"Gaming laptop",
+    "price":1500.00,
+    "rating":4.5
+  }' | jq .
 ```
 
 3) Compare items:

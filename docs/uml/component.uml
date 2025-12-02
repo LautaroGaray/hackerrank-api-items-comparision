@@ -4,6 +4,7 @@ package "Presentation Layer" {
   [ItemController]
   [AuthController]
   [GlobalExceptionHandler]
+  [CreateItemRequest DTO]
 }
 
 package "Application Layer" {
@@ -38,14 +39,21 @@ package "Infrastructure Layer" {
     [OpenApiConfig]
     [JwtProperties]
   }
+  
+  package "ID Generation" {
+    [UUID Generator]
+  }
 }
 
 database "items.json" {
 }
 
+[ItemController] --> [CreateItemRequest DTO]
+[CreateItemRequest DTO] --> [Item] : converts to
 [ItemController] --> [ItemService]
 [AuthController] --> [AuthService]
 [ItemService] --> [ItemValidator]
+[ItemService] --> [UUID Generator] : generates ID
 [ItemService] --> [JsonItemRepository]
 [AuthService] --> [InMemoryUserRepository]
 [AuthService] --> [JwtUtil]
@@ -62,5 +70,24 @@ database "items.json" {
 [JwtAuthenticationFilter] --> [JwtUtil]
 
 [GlobalExceptionHandler] ..> [Exceptions]
+
+note right of [UUID Generator]
+  UUID.randomUUID()
+  Auto-generates unique IDs
+  No collision check needed
+end note
+
+note right of [CreateItemRequest DTO]
+  POST /items request body
+  Fields: name, imageUrl,
+          description, price, rating
+  NO id field
+end note
+
+note right of [Item]
+  Domain model
+  Can be created with or without id
+  withId() method for adding generated id
+end note
 
 @enduml

@@ -2,6 +2,7 @@ package com.items.application.service;
 
 import java.math.BigDecimal;
 import java.util.Map;
+import java.util.UUID;
 
 import com.items.domain.exception.InvalidItemException;
 import com.items.domain.exception.ItemNotFoundException;
@@ -93,14 +94,13 @@ public class ItemService implements
     }
 
     @Override
-    public Item createItem(Item item) throws InvalidItemException {
-        ItemValidator.validateNotNull(item);
-        ItemValidator.validateIdNotNull(item.id());        
-        ItemValidator.validateName(item.name());
-        ItemValidator.validatePrice(item.price());
-        ItemValidator.validateRating(item.rating());
+    public Item createItem(Item item) {
+        ItemValidator.validate(item);        
         
-        return itemRepository.save(item);
+        String generatedId = UUID.randomUUID().toString();
+        Item itemWithId = item.withId(generatedId);
+        
+        return itemRepository.save(itemWithId);
     }
  
 }

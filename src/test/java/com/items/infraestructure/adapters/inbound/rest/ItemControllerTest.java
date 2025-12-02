@@ -8,9 +8,11 @@ import com.items.domain.port.inbound.CreateItemUseCase;
 import com.items.domain.port.inbound.DeleteItemUseCase;
 import com.items.domain.port.inbound.GetItemUseCase;
 import com.items.domain.port.inbound.UpdateItemUseCase;
+import com.items.infraestructure.adapters.inbound.rest.dto.CreateItemRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -39,38 +41,96 @@ class ItemControllerTest {
     private ComparisionUseCase comparisionUseCase;
 
     private ItemController itemController;
-    private Item testItem;
+    private Item testItemWithId;
+    private CreateItemRequest createRequest;
 
     @BeforeEach
-    void setUp() {
-        itemController = new ItemController(createItemUseCase, getItemUseCase, updateItemUseCase, deleteItemUseCase, comparisionUseCase);
-        testItem = new Item("item-123", "Laptop", "http://img.com/laptop.jpg", "Gaming laptop", BigDecimal.valueOf(1500.0), 4.5);
+    void setUp() {        itemController = new ItemController(createItemUseCase, getItemUseCase, updateItemUseCase, deleteItemUseCase, comparisionUseCase);
+        
+       
+        testItemWithId = new Item(
+            "item-123", 
+            "Laptop", 
+            "http://img.com/laptop.jpg", 
+            "Gaming laptop", 
+            BigDecimal.valueOf(1500.0), 
+            4.5
+        );
+        
+        
+        createRequest = new CreateItemRequest(
+            "Laptop",
+            "http://img.com/laptop.jpg",
+            "Gaming laptop",
+            BigDecimal.valueOf(1500.0),
+            4.5
+        );
     }
 
     @Test
-    void createItem_shouldReturnCreatedItem() {
-        when(createItemUseCase.createItem(testItem)).thenReturn(testItem);
+    void createItem_shouldReturnItemWithGeneratedId() {
+    
+        ArgumentCaptor<Item> itemCaptor = ArgumentCaptor.forClass(Item.class);        
+       
+        when(createItemUseCase.createItem(any(Item.class))).thenReturn(testItemWithId);
 
-        Item result = itemController.createItem(testItem);
-
+        Item result = itemController.createItem(createRequest);  
+        verify(createItemUseCase).createItem(itemCaptor.capture());        
+    
+        Item capturedItem = itemCaptor.getValue();
+        assertNull(capturedItem.id(), "Item passed to use case should not have id");
+        assertEquals("Laptop", capturedItem.name());
+        assertEquals(BigDecimal.valueOf(1500.0), capturedItem.price());        
+      
         assertNotNull(result);
+        assertNotNull(result.id(), "Returned item should have generated id");
         assertEquals("item-123", result.id());
         assertEquals("Laptop", result.name());
-        verify(createItemUseCase).createItem(testItem);
+    }
+
+    @Test
+    void createItem_shouldPassItemWithoutIdToUseCase() {
+        when(createItemUseCase.createItem(any(Item.class))).thenReturn(testItemWithId);
+
+        itemController.createItem(createRequest);
+
+        ArgumentCaptor<Item> itemCaptor = ArgumentCaptor.forClass(Item.class);
+        verify(createItemUseCase).createItem(itemCaptor.capture());
+        
+        Item capturedItem = itemCaptor.getValue();
+        assertNull(capturedItem.id());
+        assertEquals("Laptop", capturedItem.name());
+        assertEquals("http://img.com/laptop.jpg", capturedItem.imageUrl());
+        assertEquals("Gaming laptop", capturedItem.description());
+        assertEquals(BigDecimal.valueOf(1500.0), capturedItem.price());
+        assertEquals(4.5, capturedItem.rating());
     }
 
     @Test
     void createItem_shouldCallUseCaseOnce() {
-        when(createItemUseCase.createItem(testItem)).thenReturn(testItem);
+        when(createItemUseCase.createItem(any(Item.class))).thenReturn(testItemWithId);
 
-        itemController.createItem(testItem);
+        itemController.createItem(createRequest);
 
-        verify(createItemUseCase, times(1)).createItem(testItem);
+        verify(createItemUseCase, times(1)).createItem(any(Item.class));
+    }
+
+    @Test
+    void createItem_shouldConvertDtoToItem() {
+        when(createItemUseCase.createItem(any(Item.class))).thenReturn(testItemWithId);
+
+        Item result = itemController.createItem(createRequest);
+      
+        assertEquals(createRequest.name(), result.name());
+        assertEquals(createRequest.imageUrl(), result.imageUrl());
+        assertEquals(createRequest.description(), result.description());
+        assertEquals(createRequest.price(), result.price());
+        assertEquals(createRequest.rating(), result.rating());
     }
 
     @Test
     void getById_shouldReturnItem() {
-        when(getItemUseCase.getItemById("item-123")).thenReturn(testItem);
+        when(getItemUseCase.getItemById("item-123")).thenReturn(testItemWithId);
 
         Item result = itemController.getById("item-123");
 
@@ -89,24 +149,57 @@ class ItemControllerTest {
 
     @Test
     void updateItem_shouldReturnUpdatedItem() {
-        Item updatedItem = new Item("item-123", "Updated Laptop", "http://img.com/laptop.jpg", "Updated desc", BigDecimal.valueOf(1600.0), 4.6);
-        when(updateItemUseCase.updateItem(updatedItem)).thenReturn(updatedItem);
+        Item itemToUpdate = new Item(
+            "item-123", 
+            "Updated Laptop", 
+            "http://img.com/laptop.jpg", 
+            "Updated desc", 
+            BigDecimal.valueOf(1600.0), 
+            4.6
+        );
+        
+        when(updateItemUseCase.updateItem(itemToUpdate)).thenReturn(itemToUpdate);
 
-        Item result = itemController.updateItem(updatedItem);
+        Item result = itemController.updateItem(itemToUpdate);
 
         assertNotNull(result);
+        assertEquals("item-123", result.id());
         assertEquals("Updated Laptop", result.name());
         assertEquals(BigDecimal.valueOf(1600.0), result.price());
-        verify(updateItemUseCase).updateItem(updatedItem);
+        verify(updateItemUseCase).updateItem(itemToUpdate);
+    }
+
+    @Test
+    void updateItem_shouldRequireIdInItem() {
+       
+        Item itemWithId = new Item(
+            "item-123",
+            "Laptop",
+            "http://img.com/laptop.jpg",
+            "Gaming laptop",
+            BigDecimal.valueOf(1500.0),
+            4.5
+        );
+        
+        when(updateItemUseCase.updateItem(itemWithId)).thenReturn(itemWithId);
+
+        itemController.updateItem(itemWithId);
+
+        ArgumentCaptor<Item> itemCaptor = ArgumentCaptor.forClass(Item.class);
+        verify(updateItemUseCase).updateItem(itemCaptor.capture());
+        
+        Item capturedItem = itemCaptor.getValue();
+        assertNotNull(capturedItem.id(), "Update requires item with id");
+        assertEquals("item-123", capturedItem.id());
     }
 
     @Test
     void updateItem_shouldCallUseCaseOnce() {
-        when(updateItemUseCase.updateItem(testItem)).thenReturn(testItem);
+        when(updateItemUseCase.updateItem(testItemWithId)).thenReturn(testItemWithId);
 
-        itemController.updateItem(testItem);
+        itemController.updateItem(testItemWithId);
 
-        verify(updateItemUseCase, times(1)).updateItem(testItem);
+        verify(updateItemUseCase, times(1)).updateItem(testItemWithId);
     }
 
     @Test

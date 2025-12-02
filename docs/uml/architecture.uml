@@ -42,6 +42,7 @@ package "Adapters Inbound" <<inbound>> {
   [ItemController]
   [AuthController]
   [REST API]
+  [CreateItemRequest DTO]
 }
 
 package "Adapters Outbound" <<outbound>> {
@@ -50,6 +51,7 @@ package "Adapters Outbound" <<outbound>> {
   [JwtUtil]
   [ItemEntity]
   [ItemEntityMapper]
+  [UUID Generator]
 }
 
 package "Infrastructure" {
@@ -62,6 +64,9 @@ package "Infrastructure" {
 ' Connections
 [REST API] --> [ItemController]
 [REST API] --> [AuthController]
+
+[ItemController] --> [CreateItemRequest DTO]
+[CreateItemRequest DTO] ..> [Item Model] : converts to (no id)
 
 [ItemController] ..> CreateUC
 [ItemController] ..> GetUC
@@ -79,6 +84,7 @@ package "Infrastructure" {
 
 [ItemService] --> ItemRepo
 [ItemService] --> [ItemValidator]
+[ItemService] --> [UUID Generator] : generates ID
 [AuthService] --> UserRepo
 [AuthService] --> TokenPort
 
@@ -90,18 +96,32 @@ TokenPort <|.. [JwtUtil]
 [JsonItemRepository] --> [ItemEntityMapper]
 
 [ItemEntityMapper] --> [Item Model]
+[UUID Generator] ..> [Item Model] : adds id
 
 [SecurityConfig] --> [JwtAuthenticationFilter]
 [JwtAuthenticationFilter] --> TokenPort
 
+note right of [CreateItemRequest DTO]
+  POST /items payload
+  NO id field
+  Only business data
+end note
+
+note right of [UUID Generator]
+  Auto-generates unique IDs
+  Used during item creation
+  UUID.randomUUID()
+end note
+
 note right of [Domain Layer]
   Core business logic
   No dependencies on frameworks
+  Item can exist with or without id
 end note
 
 note right of [Adapters Outbound]
   External systems
-  Persistence, Security, etc.
+  Persistence, Security, ID generation
 end note
 
 @enduml

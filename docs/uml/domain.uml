@@ -10,7 +10,9 @@ class Item {
   - BigDecimal price
   - Double rating
   --
-  + Item(...)
+  + Item(id, name, imageUrl, description, price, rating)
+  + Item(name, imageUrl, description, price, rating) // without id
+  + withId(String newId) : Item
   + id() : String
   + name() : String
   + price() : BigDecimal
@@ -49,18 +51,38 @@ class ItemNotFoundException {
   + ItemNotFoundException(String)
 }
 
+class CreateItemRequest {
+  - String name
+  - String imageUrl
+  - String description
+  - BigDecimal price
+  - Double rating
+  --
+  + CreateItemRequest(...)
+}
+
 ItemValidator ..> Item : validates
 ItemValidator ..> InvalidItemException : throws
 ComparisionResult "1" *-- "2" Item : contains
+CreateItemRequest ..> Item : converts to
 
 note right of Item
   Immutable record
-  Business entity
+  - Constructor with id (for updates/gets)
+  - Constructor without id (for creation)
+  - withId() creates new instance with ID
 end note
 
 note right of ItemValidator
   Domain service
-  Validation rules
+  Does NOT validate id
+  (id is auto-generated)
+end note
+
+note right of CreateItemRequest
+  DTO for POST /items
+  Does NOT include id field
+  Used only for creation
 end note
 
 @enduml

@@ -8,6 +8,7 @@ import com.items.domain.port.outbound.ItemRepositoryPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -37,15 +38,95 @@ class ItemServiceTest {
         validItem2 = new Item("id2", "Item B", "http://example.com/b.jpg", "Description B", BigDecimal.valueOf(150.0), 4.8);
     }
 
-    @Test
-    void createItem_shouldSaveAndReturnItem() {
-        when(itemRepository.save(any(Item.class))).thenReturn(validItem);
+   @Test
+    void createItem_shouldGenerateIdAndSaveItem() {
+        Item itemWithoutId = new Item(
+            null,
+            "Laptop",
+            "http://example.com/laptop.jpg",
+            "Gaming laptop",
+            BigDecimal.valueOf(1500.0),
+            4.5
+        );
+        
+        Item itemWithId = new Item(
+            "generated-uuid",
+            "Laptop",
+            "http://example.com/laptop.jpg",
+            "Gaming laptop",
+            BigDecimal.valueOf(1500.0),
+            4.5
+        );
+        
+        when(itemRepository.save(any(Item.class))).thenReturn(itemWithId);
 
-        Item result = itemService.createItem(validItem);
+        Item result = itemService.createItem(itemWithoutId);
 
         assertNotNull(result);
-        assertEquals(validItem.id(), result.id());
-        verify(itemRepository, times(1)).save(validItem);
+        assertNotNull(result.id(), "Generated ID should not be null");
+        assertEquals("Laptop", result.name());
+        assertEquals(BigDecimal.valueOf(1500.0), result.price());
+        
+        verify(itemRepository, times(1)).save(any(Item.class));
+    }
+
+    @Test
+    void createItem_shouldGenerateUniqueIdForEachItem() {
+        Item item1WithoutId = new Item(null, "Item 1", "http://url1", "desc1", BigDecimal.TEN, 4.0);
+        Item item2WithoutId = new Item(null, "Item 2", "http://url2", "desc2", BigDecimal.TEN, 4.0);
+        
+        Item item1WithId = new Item("uuid-1", "Item 1", "http://url1", "desc1", BigDecimal.TEN, 4.0);
+        Item item2WithId = new Item("uuid-2", "Item 2", "http://url2", "desc2", BigDecimal.TEN, 4.0);
+        
+        when(itemRepository.save(any(Item.class)))
+            .thenReturn(item1WithId)
+            .thenReturn(item2WithId);
+
+        Item result1 = itemService.createItem(item1WithoutId);
+        Item result2 = itemService.createItem(item2WithoutId);
+
+        assertNotNull(result1.id());
+        assertNotNull(result2.id());
+        assertNotEquals(result1.id(), result2.id(), "IDs should be unique");
+        
+        verify(itemRepository, times(2)).save(any(Item.class));
+    }
+
+    @Test
+    void createItem_shouldAcceptItemWithoutId() {
+        Item itemWithoutId = new Item(
+            null,
+            "Mouse",
+            "http://example.com/mouse.jpg",
+            "Gaming mouse",
+            BigDecimal.valueOf(50.0),
+            4.8
+        );
+        
+        Item itemWithId = itemWithoutId.withId("auto-generated-id");
+        
+        when(itemRepository.save(any(Item.class))).thenReturn(itemWithId);
+
+        Item result = itemService.createItem(itemWithoutId);
+
+        assertNotNull(result.id());
+        verify(itemRepository, times(1)).save(any(Item.class));
+    }
+
+    @Test
+    void createItem_shouldPassItemWithGeneratedIdToRepository() {
+        Item itemWithoutId = new Item(null, "Keyboard", "http://url", "desc", BigDecimal.valueOf(100.0), 4.5);
+        
+        ArgumentCaptor<Item> itemCaptor = ArgumentCaptor.forClass(Item.class);
+        when(itemRepository.save(any(Item.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        itemService.createItem(itemWithoutId);
+
+        verify(itemRepository).save(itemCaptor.capture());
+        Item savedItem = itemCaptor.getValue();
+        
+        assertNotNull(savedItem.id(), "Item saved to repository should have generated ID");
+        assertEquals("Keyboard", savedItem.name());
     }
 
     @Test
@@ -55,29 +136,30 @@ class ItemServiceTest {
     }
 
     @Test
-    void createItem_shouldThrowWhenIdIsNull() {
-        Item invalidItem = new Item(null, "name", "url", "desc", BigDecimal.TEN, 4.0);
-        assertThrows(InvalidItemException.class, () -> itemService.createItem(invalidItem));
-        verify(itemRepository, never()).save(any());
-    }
-
-    @Test
     void createItem_shouldThrowWhenNameIsNull() {
-        Item invalidItem = new Item("id1", null, "url", "desc", BigDecimal.TEN, 4.0);
+        Item invalidItem = new Item(null, null, "url", "desc", BigDecimal.TEN, 4.0);
         assertThrows(InvalidItemException.class, () -> itemService.createItem(invalidItem));
         verify(itemRepository, never()).save(any());
     }
 
     @Test
     void createItem_shouldThrowWhenPriceIsNegative() {
-        Item invalidItem = new Item("id1", "name", "url", "desc", BigDecimal.valueOf(-10), 4.0);
+        Item invalidItem = new Item(null, "name", "url", "desc", BigDecimal.valueOf(-10), 4.0);
         assertThrows(InvalidItemException.class, () -> itemService.createItem(invalidItem));
         verify(itemRepository, never()).save(any());
     }
 
     @Test
     void createItem_shouldThrowWhenRatingIsInvalid() {
-        Item invalidItem = new Item("id1", "name", "url", "desc", BigDecimal.TEN, 6.0);
+        Item invalidItem = new Item(null, "name", "url", "desc", BigDecimal.TEN, 6.0);
+        assertThrows(InvalidItemException.class, () -> itemService.createItem(invalidItem));
+        verify(itemRepository, never()).save(any());
+    }
+
+    @Test
+    void createItem_shouldValidateBeforeGeneratingId() {
+        Item invalidItem = new Item(null, "", "url", "desc", BigDecimal.valueOf(-5), 10.0);
+        
         assertThrows(InvalidItemException.class, () -> itemService.createItem(invalidItem));
         verify(itemRepository, never()).save(any());
     }

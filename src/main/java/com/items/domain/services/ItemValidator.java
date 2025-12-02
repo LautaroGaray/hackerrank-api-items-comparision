@@ -8,6 +8,19 @@ import java.math.BigDecimal;
 
 public final class ItemValidator {
 
+    public static void validate(Item item) {
+        if (item == null) {
+            throw new InvalidItemException("Item cannot be null");
+        }
+        
+        if (item.name() == null || item.name().isBlank()) {
+            throw new InvalidItemException("Item name is required");
+        }
+        
+        validatePrice(item.price());
+        validateRating(item.rating());
+    }
+    
    public static void validateNotNull(Item item) {
         if (item == null) {
             throw new InvalidItemException("Item cannot be null");

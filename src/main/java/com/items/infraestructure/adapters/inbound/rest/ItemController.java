@@ -17,6 +17,7 @@ import com.items.domain.port.inbound.CreateItemUseCase;
 import com.items.domain.port.inbound.DeleteItemUseCase;
 import com.items.domain.port.inbound.GetItemUseCase;
 import com.items.domain.port.inbound.UpdateItemUseCase;
+import com.items.infraestructure.adapters.inbound.rest.dto.CreateItemRequest;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -48,15 +49,25 @@ public class ItemController {
         this.comparisionUseCase = comparisionUseCase;
     }
 
-    @PostMapping
-    @Operation(summary = "Create new item", description = "Creates a new item in the system")
+   @PostMapping
+    @Operation(summary = "Create new item", description = "Creates a new item with auto-generated ID")
     @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Item created successfully"),
+        @ApiResponse(responseCode = "200", description = "Item created successfully with generated ID"),
         @ApiResponse(responseCode = "400", description = "Invalid item data"),
         @ApiResponse(responseCode = "401", description = "Unauthorized")
     })
-    public Item createItem(@RequestBody Item item){
-        return createItemUseCase.createItem(item);
+    public Item createItem(@RequestBody CreateItemRequest request){
+       
+        Item itemWithoutId = new Item(
+            request.name(),
+            request.imageUrl(),
+            request.description(),
+            request.price(),
+            request.rating()
+        );
+        
+        
+        return createItemUseCase.createItem(itemWithoutId);
     }
 
     @PutMapping
